@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Чат — подтверждение почты и выход из устройств</title>
+    <title>Чат — поиск пользователей</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -28,8 +28,8 @@
         .other-message .message-bubble { background: #e4e6eb; color: black; }
         .message-info { font-size: 0.75rem; color: #65676b; display: flex; align-items: center; gap: 5px; margin-bottom: 2px; cursor: pointer; }
         .my-message .message-info { justify-content: flex-end; }
-        .chat-item, .user-item { padding: 10px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
-        .chat-item:hover, .user-item:hover { background: #e4e6eb; }
+        .chat-item, .search-result-item { padding: 10px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        .chat-item:hover, .search-result-item:hover { background: #e4e6eb; }
         .chat-item.active { background: #e7f3ff; border-left: 3px solid #0084ff; }
         .current-chat-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; display: flex; align-items: center; gap: 10px; }
         .error-message { color: red; font-size: 0.9rem; }
@@ -138,6 +138,35 @@
             align-self: flex-start;
         }
 
+        /* Поиск */
+        .search-container {
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        .search-results.show {
+            display: block;
+        }
+        .search-result-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
         /* Тёмная тема */
         body.dark-theme {
             background: #1a1a1a;
@@ -153,7 +182,8 @@
         body.dark-theme .profile-modal,
         body.dark-theme .password-modal,
         body.dark-theme .reset-modal,
-        body.dark-theme .confirm-modal {
+        body.dark-theme .confirm-modal,
+        body.dark-theme .search-results {
             background: #2d2d2d;
             border-color: #444;
             color: #e0e0e0;
@@ -166,10 +196,10 @@
             background: #1e1e1e;
         }
         body.dark-theme .chat-item,
-        body.dark-theme .user-item,
+        body.dark-theme .search-result-item,
         body.dark-theme .current-user:hover,
         body.dark-theme .chat-item:hover,
-        body.dark-theme .user-item:hover {
+        body.dark-theme .search-result-item:hover {
             background: #3a3a3a;
             color: #e0e0e0;
         }
@@ -307,7 +337,6 @@
     </div>
 
     <div id="chatContainer" class="chat-container container-fluid" style="display:none;">
-        <!-- Блок с предупреждением о неподтверждённом email будет вставлен сюда через JS -->
         <div class="row">
             <div class="col-md-4 sidebar">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -322,11 +351,13 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <h6>Другие пользователи</h6>
-                    <div id="usersList" class="list-group" style="max-height:200px; overflow-y:auto;"></div>
+                <!-- Поиск пользователей -->
+                <div class="search-container">
+                    <input type="text" id="searchInput" class="form-control" placeholder="🔍 Поиск пользователей...">
+                    <div id="searchResults" class="search-results"></div>
                 </div>
 
+                <!-- Список чатов -->
                 <div>
                     <h6>Чаты</h6>
                     <div id="chatsList" style="max-height:300px; overflow-y:auto;"></div>
@@ -412,7 +443,6 @@
             const registerEmail = $('registerEmail');
             const registerPassword = $('registerPassword');
             const logoutBtn = $('logoutBtn');
-            const usersListDiv = $('usersList');
             const chatsListDiv = $('chatsList');
             const currentChatHeader = $('currentChatHeader');
             const chatHeaderName = $('chatHeaderName');
@@ -464,6 +494,10 @@
             const emailVerificationBlock = $('emailVerificationBlock');
             const resendVerificationBtn = $('resendVerificationBtn');
 
+            // Элементы поиска
+            const searchInput = $('searchInput');
+            const searchResultsDiv = $('searchResults');
+
             // Тема
             function setTheme(theme) {
                 if (theme === 'dark') {
@@ -492,6 +526,9 @@
             let chatListeners = {};
             let userStatusListener = null;
             let typingTimeout = null;
+
+            // Хранилище всех пользователей для поиска
+            let allUsers = [];
 
             // Звук уведомления (НЕ МЕНЯЕМ!)
             const notificationSound = new Audio('https://zvukogram.com/index.php?r=site/download&id=84076&type=mp3');
@@ -524,7 +561,6 @@
                     profileAvatar.className = user.avatar || 'fas fa-user';
                     profileName.textContent = user.name || 'Без имени';
                     profileEmail.textContent = user.email || '';
-                    // Статус подтверждения email
                     if (uid === currentUser.uid) {
                         if (currentUser.emailVerified) {
                             profileEmailVerified.textContent = '✅ Email подтверждён';
@@ -570,7 +606,6 @@
             changePasswordBtn.addEventListener('click', () => {
                 profileModal.style.display = 'none';
                 passwordModal.style.display = 'block';
-                // оверлей уже активен
             });
 
             closePasswordBtn.addEventListener('click', () => {
@@ -620,7 +655,7 @@
                 }
             });
 
-            // Выход из всех устройств (через смену пароля)
+            // Выход из всех устройств
             logoutAllDevicesBtn.addEventListener('click', () => {
                 profileModal.style.display = 'none';
                 confirmModal.style.display = 'block';
@@ -634,9 +669,7 @@
 
             confirmLogoutAllBtn.addEventListener('click', () => {
                 confirmModal.style.display = 'none';
-                // Открываем окно смены пароля
                 passwordModal.style.display = 'block';
-                // Можно добавить подсказку, что после смены пароля все устройства будут разлогинены
             });
 
             // Восстановление пароля
@@ -739,6 +772,7 @@
                     passwordModal.style.display = 'none';
                     resetModal.style.display = 'none';
                     confirmModal.style.display = 'none';
+                    searchResultsDiv.classList.remove('show');
                     overlay.style.display = 'none';
                 });
             }
@@ -788,7 +822,6 @@
                         createdAt: firebase.database.ServerValue.TIMESTAMP
                     });
                     await addUserToPublicChat(cred.user.uid);
-                    // Отправляем письмо для подтверждения email
                     await cred.user.sendEmailVerification();
                     alert('Письмо для подтверждения отправлено на ' + email + '. Проверьте почту и перейдите по ссылке.');
                 } catch (e) {
@@ -840,13 +873,10 @@
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUser = user;
-                    // Проверяем подтверждение email
                     if (!user.emailVerified) {
-                        // Показываем блок с предупреждением, скрываем интерфейс чата
                         authContainer.style.display = 'none';
                         chatContainer.style.display = 'block';
                         emailVerificationBlock.style.display = 'block';
-                        // Скрываем основную панель чата
                         document.querySelector('.sidebar').style.display = 'none';
                         document.querySelector('.main-chat').style.display = 'none';
                     } else {
@@ -865,7 +895,8 @@
 
                         await ensurePublicChatExists();
                         await addUserToPublicChat(user.uid);
-                        loadUsers();
+                        // Загружаем всех пользователей для поиска
+                        loadAllUsersForSearch();
                         loadChats();
                     }
                 } else {
@@ -893,6 +924,78 @@
                         messagesListener = null;
                     }
                     currentChatId = null;
+                    allUsers = [];
+                }
+            });
+
+            // Загрузка всех пользователей для поиска
+            function loadAllUsersForSearch() {
+                usersRef.on('value', (snapshot) => {
+                    const usersObj = snapshot.val() || {};
+                    allUsers = [];
+                    for (let uid in usersObj) {
+                        if (uid === currentUser.uid) continue;
+                        allUsers.push({
+                            uid: uid,
+                            name: usersObj[uid].name,
+                            email: usersObj[uid].email,
+                            avatar: usersObj[uid].avatar || 'fas fa-user'
+                        });
+                    }
+                });
+            }
+
+            // Поиск с debounce
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                clearTimeout(searchTimeout);
+                if (query.length < 2) {
+                    searchResultsDiv.classList.remove('show');
+                    return;
+                }
+                searchTimeout = setTimeout(() => {
+                    const lowerQuery = query.toLowerCase();
+                    const results = allUsers.filter(user => 
+                        user.name.toLowerCase().includes(lowerQuery)
+                    );
+                    displaySearchResults(results);
+                }, 300);
+            });
+
+            function displaySearchResults(results) {
+                if (results.length === 0) {
+                    searchResultsDiv.innerHTML = '<div class="search-result-item text-muted">Ничего не найдено</div>';
+                } else {
+                    let html = '';
+                    results.forEach(user => {
+                        html += `
+                            <div class="search-result-item" data-uid="${user.uid}" data-name="${user.name}">
+                                <i class="${user.avatar}" style="width: 30px; font-size: 1.2rem;"></i>
+                                <span>${user.name}</span>
+                            </div>
+                        `;
+                    });
+                    searchResultsDiv.innerHTML = html;
+                }
+                searchResultsDiv.classList.add('show');
+            }
+
+            // Обработка клика по результату поиска
+            searchResultsDiv.addEventListener('click', (e) => {
+                const item = e.target.closest('.search-result-item');
+                if (!item) return;
+                const uid = item.dataset.uid;
+                const name = item.dataset.name;
+                createPrivateChat(uid, name);
+                searchInput.value = '';
+                searchResultsDiv.classList.remove('show');
+            });
+
+            // Закрытие результатов при клике вне
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !searchResultsDiv.contains(e.target)) {
+                    searchResultsDiv.classList.remove('show');
                 }
             });
 
@@ -920,32 +1023,6 @@
             async function addUserToPublicChat(uid) {
                 await usersRef.child(uid).child('chats').child(PUBLIC_CHAT_ID).set(true);
                 await chatsRef.child(PUBLIC_CHAT_ID).child('participants').child(uid).set(true);
-            }
-
-            function loadUsers() {
-                usersRef.on('value', (snapshot) => {
-                    const users = snapshot.val() || {};
-                    let html = '';
-                    for (let uid in users) {
-                        if (uid === currentUser.uid) continue;
-                        const user = users[uid];
-                        const statusClass = user.online ? 'online-indicator' : 'offline-indicator';
-                        const lastSeenText = user.online ? '' : formatLastSeen(user.lastSeen);
-                        html += `<div class="list-group-item user-item" data-uid="${uid}" data-name="${user.name}">
-                            <i class="${user.avatar || 'fas fa-user'}" style="font-size: 1.5rem; width: 30px; cursor: pointer;" onclick="showProfile('${uid}')"></i>
-                            <div style="cursor: pointer;" onclick="showProfile('${uid}')">
-                                <strong>${user.name}</strong>
-                                <span class="${statusClass}"></span>
-                                <span class="last-seen">${lastSeenText}</span>
-                                <br><small>${user.email}</small>
-                            </div>
-                        </div>`;
-                    }
-                    if (usersListDiv) usersListDiv.innerHTML = html || '<div class="text-muted">Нет других пользователей</div>';
-                    document.querySelectorAll('.user-item i, .user-item div[onclick]').forEach(el => {
-                        // Обработчик уже в onclick, но добавим для надёжности
-                    });
-                });
             }
 
             async function createPrivateChat(otherUid, otherName) {
