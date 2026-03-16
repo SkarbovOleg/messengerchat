@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Чат</title>
+    <title>Чат — уведомления и реакции</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -26,7 +26,7 @@
         .message-bubble { max-width: 70%; padding: 10px 15px; border-radius: 18px; word-wrap: break-word; }
         .my-message .message-bubble { background: #0084ff; color: white; }
         .other-message .message-bubble { background: #e4e6eb; color: black; }
-        .message-info { font-size: 0.75rem; color: #65676b; display: flex; align-items: center; gap: 5px; }
+        .message-info { font-size: 0.75rem; color: #65676b; display: flex; align-items: center; gap: 5px; margin-bottom: 2px; }
         .my-message .message-info { justify-content: flex-end; }
         .chat-item, .user-item { padding: 10px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
         .chat-item:hover, .user-item:hover { background: #e4e6eb; }
@@ -66,6 +66,33 @@
             font-size: 0.7rem;
             color: #65676b;
             margin-left: 5px;
+        }
+
+        /* Кнопка реакции */
+        .reaction-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #65676b;
+            transition: background 0.2s;
+            margin-top: 4px;
+        }
+        .reaction-btn:hover {
+            background: #e4e6eb;
+        }
+        .reaction-count {
+            font-size: 0.8rem;
+            margin-left: 2px;
+            font-weight: bold;
+        }
+        .my-message .reaction-btn {
+            align-self: flex-start;
         }
 
         /* Тёмная тема */
@@ -115,7 +142,8 @@
             color: #aaa;
         }
         body.dark-theme .sticker:hover,
-        body.dark-theme .avatar-option:hover {
+        body.dark-theme .avatar-option:hover,
+        body.dark-theme .reaction-btn:hover {
             background: #4a4a4a;
         }
         body.dark-theme .btn-outline-secondary {
@@ -325,17 +353,20 @@
             let currentUser = null;
             let currentChatId = null;
             let currentChatType = null;
-            let currentOtherUserId = null; // для отображения статуса в шапке
+            let currentOtherUserId = null;
             let messagesListener = null;
             let chatListeners = {};
-            let userStatusListener = null; // для отслеживания статуса собеседника
+            let userStatusListener = null;
 
+            // Звук уведомления (ЗАМЕНИТЕ ЭТОТ ПУТЬ НА СВОЙ ФАЙЛ)
+            const notificationSound = new Audio('https://zvukogram.com/index.php?r=site/download&id=84076&type=mp3');
+
+            // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
             function safeAddListener(element, event, handler) {
                 if (element) element.addEventListener(event, handler);
                 else console.warn(`Element not found: ${event}`);
             }
 
-            // Форматирование времени последнего визита
             function formatLastSeen(timestamp) {
                 if (!timestamp) return '';
                 const now = Date.now();
@@ -452,7 +483,6 @@
                 try {
                     const cred = await auth.createUserWithEmailAndPassword(email, password);
                     await cred.user.updateProfile({ displayName: name });
-                    // При регистрации создаём запись с online: false
                     await usersRef.child(cred.user.uid).set({
                         name: name,
                         email: email,
@@ -485,7 +515,6 @@
             // Выход
             safeAddListener(logoutBtn, 'click', async () => {
                 if (currentUser) {
-                    // Устанавливаем offline перед выходом
                     await usersRef.child(currentUser.uid).update({
                         online: false,
                         lastSeen: firebase.database.ServerValue.TIMESTAMP
@@ -494,15 +523,13 @@
                 auth.signOut();
             });
 
-            // Установка статуса онлайн и onDisconnect
+            // Установка онлайн
             async function setUserOnline(uid) {
                 const userRef = usersRef.child(uid);
-                // Устанавливаем онлайн
                 await userRef.update({
                     online: true,
                     lastSeen: firebase.database.ServerValue.TIMESTAMP
                 });
-                // При отключении устанавливаем offline
                 userRef.onDisconnect().update({
                     online: false,
                     lastSeen: firebase.database.ServerValue.TIMESTAMP
@@ -514,7 +541,6 @@
                 if (user) {
                     currentUser = user;
                     await setUserOnline(user.uid);
-
                     if (authContainer) authContainer.style.display = 'none';
                     if (chatContainer) chatContainer.style.display = 'block';
 
@@ -522,7 +548,6 @@
                     const userSnap = await usersRef.child(user.uid).once('value');
                     const userData = userSnap.val() || {};
                     if (currentUserAvatar) currentUserAvatar.className = userData.avatar || 'fas fa-user';
-                    // Статус текущего пользователя (всегда онлайн для себя)
                     if (currentUserStatus) currentUserStatus.innerHTML = '<span class="online-indicator"></span> онлайн';
 
                     await ensurePublicChatExists();
@@ -530,7 +555,6 @@
                     loadUsers();
                     loadChats();
                 } else {
-                    // Отписываемся от всех слушателей
                     for (let chatId in chatListeners) {
                         chatListeners[chatId].off();
                     }
@@ -575,7 +599,6 @@
                 await chatsRef.child(PUBLIC_CHAT_ID).child('participants').child(uid).set(true);
             }
 
-            // Загрузка пользователей
             function loadUsers() {
                 usersRef.on('value', (snapshot) => {
                     const users = snapshot.val() || {};
@@ -606,7 +629,6 @@
                 });
             }
 
-            // Создание/открытие личного чата
             async function createPrivateChat(otherUid, otherName) {
                 const chatId = getPrivateChatId(currentUser.uid, otherUid);
                 const chatSnap = await chatsRef.child(chatId).once('value');
@@ -625,20 +647,15 @@
                 openChat(chatId, 'private', otherName, otherUid);
             }
 
-            // Загрузка списка чатов и установка слушателей
             function loadChats() {
                 usersRef.child(currentUser.uid).child('chats').on('value', async (snapshot) => {
                     const chatIds = snapshot.val() || {};
-
-                    // Отписываемся от слушателей для чатов, которых больше нет
                     for (let chatId in chatListeners) {
                         if (!chatIds[chatId]) {
                             chatListeners[chatId].off();
                             delete chatListeners[chatId];
                         }
                     }
-
-                    // Добавляем слушатели для новых чатов
                     for (let chatId in chatIds) {
                         if (!chatListeners[chatId]) {
                             const chatRef = chatsRef.child(chatId);
@@ -648,7 +665,6 @@
                             chatListeners[chatId] = { off: () => chatRef.off('value', listener) };
                         }
                     }
-
                     await refreshChatList();
                 });
             }
@@ -679,7 +695,6 @@
                     const lastMsg = chat.lastMessage || 'Нет сообщений';
                     const activeClass = id === currentChatId ? 'active' : '';
 
-                    // Для личных чатов получаем статус собеседника
                     let statusHtml = '';
                     if (id !== PUBLIC_CHAT_ID && otherUid) {
                         const userSnap = await usersRef.child(otherUid).once('value');
@@ -711,7 +726,6 @@
                 });
             }
 
-            // Открыть чат
             function openChat(chatId, type, displayName, otherUid) {
                 currentChatId = chatId;
                 currentChatType = type;
@@ -719,19 +733,15 @@
 
                 if (currentChatHeader) {
                     currentChatHeader.innerHTML = `<h5 class="mb-0">${displayName}</h5>`;
-                    // Добавляем статус в шапку
                     if (type === 'private' && otherUid) {
                         updateChatHeaderStatus(otherUid);
-                        // Подписываемся на изменения статуса собеседника
                         if (userStatusListener) {
                             userStatusListener.off();
                         }
                         const otherUserRef = usersRef.child(otherUid);
                         userStatusListener = otherUserRef.on('value', (snap) => {
                             const user = snap.val();
-                            if (user) {
-                                updateChatHeaderStatus(otherUid);
-                            }
+                            if (user) updateChatHeaderStatus(otherUid);
                         });
                     } else {
                         if (currentChatStatus) currentChatStatus.innerHTML = '';
@@ -751,6 +761,19 @@
                 messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snap) => {
                     const msg = snap.val();
                     displayMessage(msg);
+                    // Воспроизводим уведомление, если сообщение не от текущего пользователя и чат не активен (опционально)
+                    if (msg.senderId !== currentUser.uid) {
+                        notificationSound.play().catch(e => console.log('Звук не воспроизвёлся', e));
+                        // Браузерное уведомление
+                        if (Notification.permission === 'granted') {
+                            new Notification('Новое сообщение в чате', {
+                                body: `${msg.senderName}: ${msg.text}`,
+                                icon: '/favicon.ico'
+                            });
+                        } else if (Notification.permission !== 'denied') {
+                            Notification.requestPermission();
+                        }
+                    }
                 });
 
                 document.querySelectorAll('.chat-item').forEach(el => {
@@ -759,7 +782,6 @@
                 });
             }
 
-            // Обновление статуса в шапке чата
             async function updateChatHeaderStatus(uid) {
                 const userSnap = await usersRef.child(uid).once('value');
                 const user = userSnap.val();
@@ -772,7 +794,6 @@
                 }
             }
 
-            // Отображение сообщения
             async function displayMessage(msg) {
                 if (!messagesArea) return;
                 if (messagesArea.innerHTML.includes('Выберите чат') || messagesArea.innerHTML.includes('Загрузка')) {
@@ -790,13 +811,40 @@
                 const msgDiv = document.createElement('div');
                 msgDiv.className = `message ${isMy ? 'my-message' : 'other-message'}`;
                 const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+                // Получаем реакции
+                const reactions = msg.reactions || {};
+                const count = Object.keys(reactions).length;
+                const userReacted = reactions[currentUser.uid] ? true : false;
+
                 msgDiv.innerHTML = `
                     <div class="message-info">
                         <i class="${avatarIcon}" style="font-size: 1rem; width: 20px;"></i>
                         <span>${msg.senderName || 'Пользователь'} · ${time}</span>
                     </div>
                     <div class="message-bubble">${msg.text}</div>
+                    <button class="reaction-btn" data-message-id="${msg.id}" data-reacted="${userReacted}">
+                        👍 <span class="reaction-count">${count}</span>
+                    </button>
                 `;
+
+                // Обработчик реакции
+                const btn = msgDiv.querySelector('.reaction-btn');
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const messageId = btn.dataset.messageId;
+                    const reacted = btn.dataset.reacted === 'true';
+                    const updates = {};
+                    if (reacted) {
+                        // Убрать реакцию
+                        updates[`messages/${currentChatId}/${messageId}/reactions/${currentUser.uid}`] = null;
+                    } else {
+                        // Поставить реакцию
+                        updates[`messages/${currentChatId}/${messageId}/reactions/${currentUser.uid}`] = true;
+                    }
+                    await db.ref().update(updates);
+                });
+
                 messagesArea.appendChild(msgDiv);
                 messagesArea.scrollTop = messagesArea.scrollHeight;
             }
@@ -811,7 +859,8 @@
                     text: text,
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 };
-                await messagesRef.child(currentChatId).push(msg);
+                const newMsgRef = messagesRef.child(currentChatId).push();
+                await newMsgRef.set({ ...msg, id: newMsgRef.key });
                 await chatsRef.child(currentChatId).update({
                     lastMessage: text,
                     lastMessageTime: msg.timestamp
