@@ -3,18 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Простой мессенджер</title>
+    <title>Мессенджер с регистрацией</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        #messages { height: 70vh; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; }
-        .message { margin-bottom: 10px; padding: 5px 10px; border-radius: 10px; width: fit-content; max-width: 80%; }
-        .my-message { background-color: #dcf8c6; margin-left: auto; }
-        .other-message { background-color: #fff; border: 1px solid #ddd; }
+        #messages { height: 60vh; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; }
+        .message { margin-bottom: 10px; padding: 8px 12px; border-radius: 18px; width: fit-content; max-width: 80%; }
+        .my-message { background-color: #dcf8c6; margin-left: auto; border-bottom-right-radius: 4px; }
+        .other-message { background-color: #fff; border: 1px solid #e5e5ea; border-bottom-left-radius: 4px; }
+        .message-info { font-size: 0.8rem; font-weight: bold; color: #555; margin-bottom: 2px; }
+        .auth-container { max-width: 400px; margin: 50px auto; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .chat-container { display: none; }
+        .error-message { color: red; font-size: 0.9rem; margin-top: 5px; }
     </style>
 </head>
 <body class="bg-light">
-    <div class="container py-4">
-        <h1 class="text-center mb-4">💬 Мой чат</h1>
+    <!-- Контейнер для формы входа/регистрации -->
+    <div id="authContainer" class="auth-container">
+        <h2 class="text-center mb-4">💬 Чат</h2>
+        <ul class="nav nav-tabs mb-3" id="authTabs">
+            <li class="nav-item">
+                <button class="nav-link active" id="loginTab">Вход</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="registerTab">Регистрация</button>
+            </li>
+        </ul>
+        
+        <!-- Форма входа -->
+        <div id="loginForm">
+            <div class="mb-3">
+                <label>Email</label>
+                <input type="email" id="loginEmail" class="form-control" placeholder="email@example.com">
+            </div>
+            <div class="mb-3">
+                <label>Пароль</label>
+                <input type="password" id="loginPassword" class="form-control" placeholder="••••••••">
+            </div>
+            <button class="btn btn-primary w-100" id="loginBtn">Войти</button>
+            <div id="loginError" class="error-message text-center mt-2"></div>
+        </div>
+        
+        <!-- Форма регистрации -->
+        <div id="registerForm" style="display: none;">
+            <div class="mb-3">
+                <label>Имя (как вас видеть в чате)</label>
+                <input type="text" id="registerName" class="form-control" placeholder="Анна">
+            </div>
+            <div class="mb-3">
+                <label>Email</label>
+                <input type="email" id="registerEmail" class="form-control" placeholder="email@example.com">
+            </div>
+            <div class="mb-3">
+                <label>Пароль (минимум 6 символов)</label>
+                <input type="password" id="registerPassword" class="form-control" placeholder="••••••••">
+            </div>
+            <button class="btn btn-success w-100" id="registerBtn">Зарегистрироваться</button>
+            <div id="registerError" class="error-message text-center mt-2"></div>
+        </div>
+    </div>
+
+    <!-- Контейнер чата (изначально скрыт) -->
+    <div id="chatContainer" class="container py-4 chat-container">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>💬 Чат</h1>
+            <button class="btn btn-outline-danger" id="logoutBtn">Выйти</button>
+        </div>
         <div id="messages" class="d-flex flex-column"></div>
         <div class="input-group mt-3">
             <input type="text" id="messageInput" class="form-control" placeholder="Введите сообщение..." autofocus>
@@ -22,11 +75,13 @@
         </div>
     </div>
 
+    <!-- Подключаем Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <script>
-        // 🔥 ВСТАВЬ СВОЮ КОНФИГУРАЦИЮ СЮДА
+        // 🔥 ТВОЯ КОНФИГУРАЦИЯ (уже правильная)
         const firebaseConfig = {
             apiKey: "AIzaSyCsLl9HXoauEKn5dBMCioT2OoHkJ_8IECg",
             authDomain: "my-simple-chat-cc22e.firebaseapp.com",
@@ -37,31 +92,207 @@
             appId: "1:399768373584:web:f2b42157ac87c1c69d4455"
         };
 
+        // Инициализация Firebase
         const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const database = firebase.database();
         const messagesRef = database.ref('messages');
 
+        // Элементы интерфейса
+        const authContainer = document.getElementById('authContainer');
+        const chatContainer = document.getElementById('chatContainer');
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
+        const logoutBtn = document.getElementById('logoutBtn');
 
+        // Элементы вкладок и форм
+        const loginTab = document.getElementById('loginTab');
+        const registerTab = document.getElementById('registerTab');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const loginError = document.getElementById('loginError');
+        const registerError = document.getElementById('registerError');
+        const registerName = document.getElementById('registerName');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const registerEmail = document.getElementById('registerEmail');
+        const registerPassword = document.getElementById('registerPassword');
+
+        // ========== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ==========
+        loginTab.addEventListener('click', () => {
+            loginTab.classList.add('active');
+            registerTab.classList.remove('active');
+            loginForm.style.display = 'block';
+            registerForm.style.display = 'none';
+            clearErrors();
+        });
+
+        registerTab.addEventListener('click', () => {
+            registerTab.classList.add('active');
+            loginTab.classList.remove('active');
+            registerForm.style.display = 'block';
+            loginForm.style.display = 'none';
+            clearErrors();
+        });
+
+        function clearErrors() {
+            loginError.textContent = '';
+            registerError.textContent = '';
+        }
+
+        // ========== РЕГИСТРАЦИЯ ==========
+        registerBtn.addEventListener('click', () => {
+            const name = registerName.value.trim();
+            const email = registerEmail.value.trim();
+            const password = registerPassword.value;
+
+            if (!name || !email || !password) {
+                registerError.textContent = 'Заполните все поля';
+                return;
+            }
+            if (password.length < 6) {
+                registerError.textContent = 'Пароль должен быть минимум 6 символов';
+                return;
+            }
+
+            // Создаём пользователя в Firebase Authentication
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Добавляем имя пользователю
+                    return userCredential.user.updateProfile({
+                        displayName: name
+                    }).then(() => {
+                        // Успешно зарегистрировались - вход произойдёт автоматически
+                        console.log('Регистрация успешна');
+                    });
+                })
+                .catch((error) => {
+                    console.error('Ошибка регистрации:', error);
+                    if (error.code === 'auth/email-already-in-use') {
+                        registerError.textContent = 'Этот email уже зарегистрирован';
+                    } else {
+                        registerError.textContent = 'Ошибка: ' + error.message;
+                    }
+                });
+        });
+
+        // ========== ВХОД ==========
+        loginBtn.addEventListener('click', () => {
+            const email = loginEmail.value.trim();
+            const password = loginPassword.value;
+
+            if (!email || !password) {
+                loginError.textContent = 'Заполните все поля';
+                return;
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    console.log('Вход успешен');
+                })
+                .catch((error) => {
+                    console.error('Ошибка входа:', error);
+                    if (error.code === 'auth/wrong-password') {
+                        loginError.textContent = 'Неверный пароль';
+                    } else if (error.code === 'auth/user-not-found') {
+                        loginError.textContent = 'Пользователь не найден';
+                    } else {
+                        loginError.textContent = 'Ошибка: ' + error.message;
+                    }
+                });
+        });
+
+        // ========== ВЫХОД ==========
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        // ========== СЛЕДИМ ЗА СОСТОЯНИЕМ ПОЛЬЗОВАТЕЛЯ ==========
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Пользователь залогинен - показываем чат
+                authContainer.style.display = 'none';
+                chatContainer.style.display = 'block';
+                
+                // Очищаем поля ввода
+                messageInput.value = '';
+                messagesDiv.innerHTML = '';
+                
+                // Загружаем сообщения
+                loadMessages();
+            } else {
+                // Пользователь вышел - показываем форму входа
+                authContainer.style.display = 'block';
+                chatContainer.style.display = 'none';
+                
+                // Очищаем все поля
+                loginEmail.value = '';
+                loginPassword.value = '';
+                registerName.value = '';
+                registerEmail.value = '';
+                registerPassword.value = '';
+                clearErrors();
+            }
+        });
+
+        // ========== ЗАГРУЗКА СООБЩЕНИЙ (с именами) ==========
+        function loadMessages() {
+            messagesRef.orderByChild('timestamp').off(); // Отключаем старые слушатели
+            messagesRef.orderByChild('timestamp').on('child_added', (snapshot) => {
+                const message = snapshot.val();
+                const currentUser = auth.currentUser;
+                
+                const messageElement = document.createElement('div');
+                
+                // Определяем, наше сообщение или нет
+                const isMyMessage = currentUser && message.uid === currentUser.uid;
+                messageElement.classList.add('message', isMyMessage ? 'my-message' : 'other-message');
+                
+                // Добавляем имя отправителя (если есть)
+                if (message.name) {
+                    const nameSpan = document.createElement('div');
+                    nameSpan.classList.add('message-info');
+                    nameSpan.textContent = isMyMessage ? 'Вы' : message.name;
+                    messageElement.appendChild(nameSpan);
+                }
+                
+                // Добавляем текст сообщения
+                const textSpan = document.createElement('div');
+                textSpan.textContent = message.text;
+                messageElement.appendChild(textSpan);
+                
+                messagesDiv.appendChild(messageElement);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+        }
+
+        // ========== ОТПРАВКА СООБЩЕНИЯ ==========
         function sendMessage() {
+            const user = auth.currentUser;
+            if (!user) {
+                alert('Вы не авторизованы');
+                return;
+            }
+            
             const text = messageInput.value.trim();
             if (text === '') return;
-            messagesRef.push({ text: text, timestamp: firebase.database.ServerValue.TIMESTAMP });
+
+            messagesRef.push({
+                text: text,
+                name: user.displayName || user.email, // Сохраняем имя или email
+                uid: user.uid, // Сохраняем ID пользователя
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+
             messageInput.value = '';
         }
 
         sendButton.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-
-        messagesRef.orderByChild('timestamp').on('child_added', (snapshot) => {
-            const message = snapshot.val();
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message', 'other-message');
-            messageElement.textContent = message.text;
-            messagesDiv.appendChild(messageElement);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
         });
     </script>
 </body>
