@@ -268,7 +268,6 @@
         <i id="profileAvatar" class="fas fa-user"></i>
         <h3 id="profileName">Имя</h3>
         <p id="profileEmail">email</p>
-        <p id="profileEmailVerified"></p>
         <p id="profileStatus">статус</p>
         <p id="profileRegistered">зарегистрирован</p>
         <button class="btn btn-primary mt-3" id="profileMessageBtn">Написать сообщение</button>
@@ -304,12 +303,6 @@
         <p>Это действие завершит все сеансы, кроме текущего. Вы уверены?</p>
         <button class="btn btn-danger mt-3" id="confirmLogoutAllBtn">Да, выйти</button>
         <button class="btn btn-secondary mt-2" id="closeConfirmBtn">Отмена</button>
-    </div>
-
-    <!-- Блок для неподтверждённого email -->
-    <div id="emailVerificationBlock" style="display: none; text-align: center; padding: 20px; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 5px; margin: 20px;">
-        <p>Ваш email не подтверждён. Пожалуйста, проверьте почту и перейдите по ссылке в письме.</p>
-        <button class="btn btn-warning" id="resendVerificationBtn">Отправить письмо повторно</button>
     </div>
 
     <div id="authContainer" class="auth-container">
@@ -468,7 +461,6 @@
             const profileAvatar = $('profileAvatar');
             const profileName = $('profileName');
             const profileEmail = $('profileEmail');
-            const profileEmailVerified = $('profileEmailVerified');
             const profileStatus = $('profileStatus');
             const profileRegistered = $('profileRegistered');
             const profileMessageBtn = $('profileMessageBtn');
@@ -491,8 +483,6 @@
             const confirmModal = $('confirmModal');
             const confirmLogoutAllBtn = $('confirmLogoutAllBtn');
             const closeConfirmBtn = $('closeConfirmBtn');
-            const emailVerificationBlock = $('emailVerificationBlock');
-            const resendVerificationBtn = $('resendVerificationBtn');
 
             // Элементы поиска
             const searchInput = $('searchInput');
@@ -561,15 +551,6 @@
                     profileAvatar.className = user.avatar || 'fas fa-user';
                     profileName.textContent = user.name || 'Без имени';
                     profileEmail.textContent = user.email || '';
-                    if (uid === currentUser.uid) {
-                        if (currentUser.emailVerified) {
-                            profileEmailVerified.textContent = '✅ Email подтверждён';
-                        } else {
-                            profileEmailVerified.textContent = '❌ Email не подтверждён (нажмите "Сменить пароль" для отправки письма)';
-                        }
-                    } else {
-                        profileEmailVerified.textContent = '';
-                    }
                     const status = user.online ? 'Онлайн' : `Был(а) ${formatLastSeen(user.lastSeen)}`;
                     profileStatus.textContent = status;
                     if (user.createdAt) {
@@ -822,8 +803,6 @@
                         createdAt: firebase.database.ServerValue.TIMESTAMP
                     });
                     await addUserToPublicChat(cred.user.uid);
-                    await cred.user.sendEmailVerification();
-                    alert('Письмо для подтверждения отправлено на ' + email + '. Проверьте почту и перейдите по ссылке.');
                 } catch (e) {
                     console.error(e);
                     if (registerError) registerError.textContent = e.message;
@@ -873,32 +852,21 @@
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUser = user;
-                    if (!user.emailVerified) {
-                        authContainer.style.display = 'none';
-                        chatContainer.style.display = 'block';
-                        emailVerificationBlock.style.display = 'block';
-                        document.querySelector('.sidebar').style.display = 'none';
-                        document.querySelector('.main-chat').style.display = 'none';
-                    } else {
-                        emailVerificationBlock.style.display = 'none';
-                        document.querySelector('.sidebar').style.display = 'block';
-                        document.querySelector('.main-chat').style.display = 'flex';
-                        await setUserOnline(user.uid);
-                        if (authContainer) authContainer.style.display = 'none';
-                        if (chatContainer) chatContainer.style.display = 'block';
+                    await setUserOnline(user.uid);
+                    if (authContainer) authContainer.style.display = 'none';
+                    if (chatContainer) chatContainer.style.display = 'block';
 
-                        if (currentUserName) currentUserName.textContent = user.displayName || user.email;
-                        const userSnap = await usersRef.child(user.uid).once('value');
-                        const userData = userSnap.val() || {};
-                        if (currentUserAvatar) currentUserAvatar.className = userData.avatar || 'fas fa-user';
-                        if (currentUserStatus) currentUserStatus.innerHTML = '<span class="online-indicator"></span> онлайн';
+                    if (currentUserName) currentUserName.textContent = user.displayName || user.email;
+                    const userSnap = await usersRef.child(user.uid).once('value');
+                    const userData = userSnap.val() || {};
+                    if (currentUserAvatar) currentUserAvatar.className = userData.avatar || 'fas fa-user';
+                    if (currentUserStatus) currentUserStatus.innerHTML = '<span class="online-indicator"></span> онлайн';
 
-                        await ensurePublicChatExists();
-                        await addUserToPublicChat(user.uid);
-                        // Загружаем всех пользователей для поиска
-                        loadAllUsersForSearch();
-                        loadChats();
-                    }
+                    await ensurePublicChatExists();
+                    await addUserToPublicChat(user.uid);
+                    // Загружаем всех пользователей для поиска
+                    loadAllUsersForSearch();
+                    loadChats();
                 } else {
                     for (let chatId in chatListeners) {
                         chatListeners[chatId].off();
@@ -910,7 +878,6 @@
                     }
                     currentUser = null;
                     currentOtherUserId = null;
-                    emailVerificationBlock.style.display = 'none';
                     if (authContainer) authContainer.style.display = 'block';
                     if (chatContainer) chatContainer.style.display = 'none';
                     if (loginEmail) loginEmail.value = '';
@@ -996,14 +963,6 @@
             document.addEventListener('click', (e) => {
                 if (!searchInput.contains(e.target) && !searchResultsDiv.contains(e.target)) {
                     searchResultsDiv.classList.remove('show');
-                }
-            });
-
-            // Повторная отправка письма для подтверждения
-            resendVerificationBtn.addEventListener('click', async () => {
-                if (currentUser) {
-                    await currentUser.sendEmailVerification();
-                    alert('Письмо отправлено повторно. Проверьте почту.');
                 }
             });
 
