@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мессенджер с общим чатом</title>
+    <title>Мессенджер с общим чатом и стикерами</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Подключаем Font Awesome для иконок (для кнопки стикеров) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body { background: #f0f2f5; }
         .auth-container { max-width: 400px; margin: 50px auto; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -15,7 +17,7 @@
         .message { margin-bottom: 15px; display: flex; flex-direction: column; }
         .my-message { align-items: flex-end; }
         .other-message { align-items: flex-start; }
-        .message-bubble { max-width: 70%; padding: 10px 15px; border-radius: 18px; }
+        .message-bubble { max-width: 70%; padding: 10px 15px; border-radius: 18px; word-wrap: break-word; }
         .my-message .message-bubble { background: #0084ff; color: white; }
         .other-message .message-bubble { background: #e4e6eb; color: black; }
         .message-info { font-size: 0.75rem; color: #65676b; margin-bottom: 2px; margin-left: 10px; }
@@ -24,10 +26,45 @@
         .chat-item.active { background: #e7f3ff; border-left: 3px solid #0084ff; }
         .current-chat-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; }
         .error-message { color: red; font-size: 0.9rem; }
+
+        /* Стили для панели стикеров */
+        .sticker-panel {
+            position: absolute;
+            bottom: 70px; /* над полем ввода */
+            right: 20px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 10px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .sticker-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+        .sticker-item {
+            font-size: 2rem;
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.1s;
+        }
+        .sticker-item:hover {
+            transform: scale(1.2);
+        }
+        .input-group {
+            position: relative;
+        }
+        #stickerToggleBtn {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
     </style>
 </head>
 <body>
-    <!-- Форма входа/регистрации -->
+    <!-- Форма входа/регистрации (без изменений) -->
     <div id="authContainer" class="auth-container">
         <h2 class="text-center mb-4">💬 Мессенджер</h2>
         <ul class="nav nav-tabs mb-3">
@@ -52,27 +89,20 @@
     <!-- Основной интерфейс чата -->
     <div id="chatContainer" class="chat-container container-fluid" style="display:none;">
         <div class="row">
-            <!-- Левая панель: список чатов и другие пользователи -->
             <div class="col-md-4 sidebar">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5>Мои чаты</h5>
                     <button class="btn btn-outline-danger btn-sm" id="logoutBtn">Выйти</button>
                 </div>
-
-                <!-- Другие пользователи (для создания личных чатов) -->
                 <div class="mb-3">
                     <h6>Другие пользователи</h6>
                     <div id="usersList" class="list-group" style="max-height:200px; overflow-y:auto;"></div>
                 </div>
-
-                <!-- Список чатов (общий и личные) -->
                 <div>
                     <h6>Чаты</h6>
                     <div id="chatsList" style="max-height:300px; overflow-y:auto;"></div>
                 </div>
             </div>
-
-            <!-- Правая панель: сообщения и отправка -->
             <div class="col-md-8 main-chat">
                 <div id="currentChatHeader" class="current-chat-header">
                     <h5 class="mb-0">Выберите чат</h5>
@@ -82,21 +112,48 @@
                 </div>
                 <div id="messageInputContainer" style="display:none; padding:15px; border-top:1px solid #dee2e6;">
                     <div class="input-group">
+                        <button class="btn btn-outline-secondary" type="button" id="stickerToggleBtn"><i class="fas fa-smile"></i></button>
                         <input type="text" id="messageInput" class="form-control" placeholder="Введите сообщение...">
                         <button class="btn btn-primary" id="sendButton">Отправить</button>
+                    </div>
+                    <!-- Панель стикеров (изначально скрыта) -->
+                    <div id="stickerPanel" class="sticker-panel">
+                        <div class="sticker-grid">
+                            <!-- Популярные эмодзи (можно заменить на свои) -->
+                            <div class="sticker-item">😀</div>
+                            <div class="sticker-item">😂</div>
+                            <div class="sticker-item">😍</div>
+                            <div class="sticker-item">🥺</div>
+                            <div class="sticker-item">😎</div>
+                            <div class="sticker-item">😡</div>
+                            <div class="sticker-item">👍</div>
+                            <div class="sticker-item">👎</div>
+                            <div class="sticker-item">🔥</div>
+                            <div class="sticker-item">🎉</div>
+                            <div class="sticker-item">❤️</div>
+                            <div class="sticker-item">💔</div>
+                            <div class="sticker-item">🤔</div>
+                            <div class="sticker-item">😭</div>
+                            <div class="sticker-item">🥳</div>
+                            <div class="sticker-item">😱</div>
+                            <div class="sticker-item">🤮</div>
+                            <div class="sticker-item">💩</div>
+                            <div class="sticker-item">👻</div>
+                            <div class="sticker-item">🤖</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK и код приложения -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <script>
-        // 🔥 ВАША КОНФИГУРАЦИЯ FIREBASE (уже ваша, проверьте databaseURL)
+        // Конфигурация Firebase (ваша)
         const firebaseConfig = {
             apiKey: "AIzaSyCsLl9HXoauEKn5dBMCioT2OoHkJ_8IECg",
             authDomain: "my-simple-chat-cc22e.firebaseapp.com",
@@ -114,7 +171,6 @@
         const chatsRef = db.ref('chats');
         const messagesRef = db.ref('messages');
 
-        // ID общего чата – фиксированный
         const PUBLIC_CHAT_ID = 'global_chat';
 
         // Элементы DOM
@@ -141,10 +197,14 @@
         const messageInputContainer = document.getElementById('messageInputContainer');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
+        // Элементы стикеров
+        const stickerToggleBtn = document.getElementById('stickerToggleBtn');
+        const stickerPanel = document.getElementById('stickerPanel');
+        const stickerItems = document.querySelectorAll('.sticker-item');
 
         let currentUser = null;
         let currentChatId = null;
-        let currentChatType = null; // 'public' или 'private'
+        let currentChatType = null;
         let messagesListener = null;
 
         // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
@@ -185,9 +245,7 @@
             try {
                 const cred = await auth.createUserWithEmailAndPassword(email, password);
                 await cred.user.updateProfile({ displayName: name });
-                // Сохраняем пользователя в БД
                 await usersRef.child(cred.user.uid).set({ name, email });
-                // Добавляем пользователя в общий чат (если ещё не участник)
                 await addUserToPublicChat(cred.user.uid);
             } catch (e) {
                 registerError.textContent = e.message;
@@ -215,51 +273,46 @@
                 currentUser = user;
                 authContainer.style.display = 'none';
                 chatContainer.style.display = 'block';
-                // Убедимся, что общий чат существует и пользователь в нём участник
                 await ensurePublicChatExists();
                 await addUserToPublicChat(user.uid);
-                // Загружаем список пользователей и чатов
                 loadUsers();
                 loadChats();
             } else {
                 currentUser = null;
                 authContainer.style.display = 'block';
                 chatContainer.style.display = 'none';
-                // Очищаем поля
                 loginEmail.value = loginPassword.value = registerName.value = registerEmail.value = registerPassword.value = '';
                 clearErrors();
-                // Отписываемся от сообщений
                 if (messagesListener) {
                     messagesRef.child(currentChatId).off('child_added', messagesListener);
                     messagesListener = null;
                 }
                 currentChatId = null;
+                // Скрыть панель стикеров
+                stickerPanel.style.display = 'none';
             }
         });
 
-        // ---------- УБЕДИТЬСЯ, ЧТО ОБЩИЙ ЧАТ СУЩЕСТВУЕТ ----------
+        // ---------- ОБЩИЙ ЧАТ ----------
         async function ensurePublicChatExists() {
             const publicChatSnap = await chatsRef.child(PUBLIC_CHAT_ID).once('value');
             if (!publicChatSnap.exists()) {
                 await chatsRef.child(PUBLIC_CHAT_ID).set({
                     type: 'public',
                     name: 'Общий чат',
-                    participants: {}, // участники будут добавляться динамически
+                    participants: {},
                     lastMessage: '',
                     lastMessageTime: firebase.database.ServerValue.TIMESTAMP
                 });
             }
         }
 
-        // ---------- ДОБАВИТЬ ПОЛЬЗОВАТЕЛЯ В ОБЩИЙ ЧАТ ----------
         async function addUserToPublicChat(uid) {
-            // Добавляем ID общего чата в список чатов пользователя
             await usersRef.child(uid).child('chats').child(PUBLIC_CHAT_ID).set(true);
-            // Добавляем пользователя в список участников общего чата (для проверки прав)
             await chatsRef.child(PUBLIC_CHAT_ID).child('participants').child(uid).set(true);
         }
 
-        // ---------- ЗАГРУЗКА ВСЕХ ПОЛЬЗОВАТЕЛЕЙ (КРОМЕ СЕБЯ) ----------
+        // ---------- ЗАГРУЗКА ПОЛЬЗОВАТЕЛЕЙ ----------
         function loadUsers() {
             usersRef.on('value', (snapshot) => {
                 const users = snapshot.val() || {};
@@ -283,12 +336,11 @@
 
         // ---------- СОЗДАНИЕ ПРИВАТНОГО ЧАТА ----------
         async function createPrivateChat(otherUid, otherName) {
-            // Ищем существующий чат между этими двумя
             const userChatsSnap = await usersRef.child(currentUser.uid).child('chats').once('value');
             const userChats = userChatsSnap.val() || {};
             let existingChatId = null;
             for (let chatId in userChats) {
-                if (chatId === PUBLIC_CHAT_ID) continue; // пропускаем общий чат
+                if (chatId === PUBLIC_CHAT_ID) continue;
                 const chatSnap = await chatsRef.child(chatId).once('value');
                 const chat = chatSnap.val();
                 if (chat && chat.type === 'private' && chat.participants && chat.participants[otherUid]) {
@@ -300,7 +352,6 @@
                 openChat(existingChatId, 'private', otherName);
                 return;
             }
-            // Создаём новый приватный чат
             const newChatRef = chatsRef.push();
             const chatId = newChatRef.key;
             const chatData = {
@@ -310,16 +361,13 @@
                 lastMessageTime: firebase.database.ServerValue.TIMESTAMP
             };
             await newChatRef.set(chatData);
-            // Добавляем ID чата в список чатов обоих пользователей
             await usersRef.child(currentUser.uid).child('chats').child(chatId).set(true);
             await usersRef.child(otherUid).child('chats').child(chatId).set(true);
-            // Добавляем участников в сам чат (уже сделано выше)
             openChat(chatId, 'private', otherName);
         }
 
-        // ---------- ЗАГРУЗКА СПИСКА ЧАТОВ ----------
+        // ---------- ЗАГРУЗКА ЧАТОВ ----------
         function loadChats() {
-            // Слушаем изменения в списке чатов пользователя
             usersRef.child(currentUser.uid).child('chats').on('value', async (snapshot) => {
                 const chatIds = snapshot.val() || {};
                 let html = '';
@@ -331,7 +379,6 @@
                     if (chatId === PUBLIC_CHAT_ID) {
                         displayName = '🌟 Общий чат';
                     } else {
-                        // Приватный чат – ищем собеседника
                         const otherUid = Object.keys(chat.participants || {}).find(id => id !== currentUser.uid);
                         if (otherUid) {
                             const userSnap = await usersRef.child(otherUid).once('value');
@@ -365,8 +412,7 @@
             currentChatType = type;
             currentChatHeader.innerHTML = `<h5 class="mb-0">${displayName}</h5>`;
             messageInputContainer.style.display = 'block';
-            messagesArea.innerHTML = ''; // очищаем, сообщения подгрузятся через слушатель
-
+            messagesArea.innerHTML = '';
             if (messagesListener) {
                 messagesRef.child(currentChatId).off('child_added', messagesListener);
             }
@@ -374,8 +420,6 @@
                 const msg = snap.val();
                 displayMessage(msg);
             });
-
-            // Подсветка активного чата в списке
             document.querySelectorAll('.chat-item').forEach(el => {
                 if (el.dataset.chatid === chatId) {
                     el.classList.add('active');
@@ -383,12 +427,13 @@
                     el.classList.remove('active');
                 }
             });
+            // Скрыть панель стикеров при смене чата
+            stickerPanel.style.display = 'none';
         }
 
         // ---------- ОТОБРАЖЕНИЕ СООБЩЕНИЯ ----------
         function displayMessage(msg) {
             if (!messagesArea) return;
-            // Убираем заглушку, если она была
             if (messagesArea.innerHTML.includes('Выберите чат') || messagesArea.innerHTML.includes('Загрузка')) {
                 messagesArea.innerHTML = '';
             }
@@ -396,6 +441,7 @@
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${isMy ? 'my-message' : 'other-message'}`;
             const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            // Просто текст, но он может содержать эмодзи, они отобразятся
             msgDiv.innerHTML = `
                 <div class="message-info">${msg.senderName || 'Пользователь'} · ${time}</div>
                 <div class="message-bubble">${msg.text}</div>
@@ -415,7 +461,6 @@
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             };
             await messagesRef.child(currentChatId).push(msg);
-            // Обновляем lastMessage в информации о чате
             await chatsRef.child(currentChatId).update({
                 lastMessage: text,
                 lastMessageTime: msg.timestamp
@@ -425,6 +470,31 @@
 
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendButton.click();
+        });
+
+        // ---------- ОБРАБОТКА СТИКЕРОВ ----------
+        // Показать/скрыть панель стикеров
+        stickerToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            stickerPanel.style.display = stickerPanel.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // При клике на стикер вставляем его в поле ввода
+        stickerItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const sticker = item.textContent;
+                messageInput.value += sticker;
+                messageInput.focus();
+                // Можно автоматически скрывать панель после выбора
+                stickerPanel.style.display = 'none';
+            });
+        });
+
+        // Скрыть панель при клике вне её
+        document.addEventListener('click', (e) => {
+            if (!stickerPanel.contains(e.target) && e.target !== stickerToggleBtn) {
+                stickerPanel.style.display = 'none';
+            }
         });
     </script>
 </body>
