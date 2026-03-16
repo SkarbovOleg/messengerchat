@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мессенджер с общим чатом и стикерами</title>
+    <title>Мессенджер с аватарками</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Подключаем Font Awesome для иконок (для кнопки стикеров) -->
+    <!-- Font Awesome для иконок (аватарок) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body { background: #f0f2f5; }
@@ -17,54 +17,42 @@
         .message { margin-bottom: 15px; display: flex; flex-direction: column; }
         .my-message { align-items: flex-end; }
         .other-message { align-items: flex-start; }
-        .message-bubble { max-width: 70%; padding: 10px 15px; border-radius: 18px; word-wrap: break-word; }
+        .message-bubble { max-width: 70%; padding: 10px 15px; border-radius: 18px; }
         .my-message .message-bubble { background: #0084ff; color: white; }
         .other-message .message-bubble { background: #e4e6eb; color: black; }
-        .message-info { font-size: 0.75rem; color: #65676b; margin-bottom: 2px; margin-left: 10px; }
-        .chat-item, .user-item { padding: 10px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; }
+        .message-info { font-size: 0.75rem; color: #65676b; margin-bottom: 2px; margin-left: 10px; display: flex; align-items: center; gap: 5px; }
+        .my-message .message-info { justify-content: flex-end; }
+        .chat-item, .user-item { padding: 10px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
         .chat-item:hover, .user-item:hover { background: #e4e6eb; }
         .chat-item.active { background: #e7f3ff; border-left: 3px solid #0084ff; }
         .current-chat-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; }
         .error-message { color: red; font-size: 0.9rem; }
-
-        /* Стили для панели стикеров */
-        .sticker-panel {
-            position: absolute;
-            bottom: 70px; /* над полем ввода */
-            right: 20px;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            padding: 10px;
-            display: none;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-        .sticker-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-        }
-        .sticker-item {
-            font-size: 2rem;
-            cursor: pointer;
-            text-align: center;
-            transition: transform 0.1s;
-        }
-        .sticker-item:hover {
-            transform: scale(1.2);
-        }
-        .input-group {
-            position: relative;
-        }
-        #stickerToggleBtn {
-            border-top-right-radius: 0;
-            border-bottom-right-radius: 0;
-        }
+        .sticker-panel { display: none; position: absolute; bottom: 70px; left: 20px; background: white; border: 1px solid #ccc; border-radius: 10px; padding: 10px; width: 250px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000; }
+        .sticker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+        .sticker { font-size: 1.8rem; cursor: pointer; text-align: center; padding: 5px; border-radius: 5px; }
+        .sticker:hover { background: #e4e6eb; }
+        .avatar-selector { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.3); z-index: 2000; max-width: 400px; }
+        .avatar-selector h5 { margin-bottom: 15px; }
+        .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+        .avatar-option { font-size: 2.5rem; cursor: pointer; text-align: center; padding: 5px; border-radius: 8px; }
+        .avatar-option:hover { background: #e7f3ff; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; }
+        .current-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px; border-radius: 8px; margin-bottom: 15px; }
+        .current-user:hover { background: #e4e6eb; }
     </style>
 </head>
 <body>
-    <!-- Форма входа/регистрации (без изменений) -->
+    <!-- Оверлей для модальных окон -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Модальное окно выбора аватарки -->
+    <div id="avatarSelector" class="avatar-selector">
+        <h5>Выберите аватарку</h5>
+        <div class="avatar-grid" id="avatarGrid"></div>
+        <button class="btn btn-secondary btn-sm mt-3 w-100" id="closeAvatarBtn">Закрыть</button>
+    </div>
+
+    <!-- Форма входа/регистрации -->
     <div id="authContainer" class="auth-container">
         <h2 class="text-center mb-4">💬 Мессенджер</h2>
         <ul class="nav nav-tabs mb-3">
@@ -89,20 +77,29 @@
     <!-- Основной интерфейс чата -->
     <div id="chatContainer" class="chat-container container-fluid" style="display:none;">
         <div class="row">
+            <!-- Левая панель: список чатов и другие пользователи -->
             <div class="col-md-4 sidebar">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5>Мои чаты</h5>
-                    <button class="btn btn-outline-danger btn-sm" id="logoutBtn">Выйти</button>
+                <!-- Блок текущего пользователя с аватаркой -->
+                <div class="current-user" id="currentUserBlock">
+                    <i id="currentUserAvatar" class="fas fa-user" style="font-size: 1.8rem;"></i>
+                    <span id="currentUserName"></span>
+                    <small class="text-muted" style="margin-left: auto;">(изменить)</small>
                 </div>
+
+                <!-- Другие пользователи (для создания личных чатов) -->
                 <div class="mb-3">
                     <h6>Другие пользователи</h6>
                     <div id="usersList" class="list-group" style="max-height:200px; overflow-y:auto;"></div>
                 </div>
+
+                <!-- Список чатов (общий и личные) -->
                 <div>
                     <h6>Чаты</h6>
                     <div id="chatsList" style="max-height:300px; overflow-y:auto;"></div>
                 </div>
             </div>
+
+            <!-- Правая панель: сообщения и отправка -->
             <div class="col-md-8 main-chat">
                 <div id="currentChatHeader" class="current-chat-header">
                     <h5 class="mb-0">Выберите чат</h5>
@@ -110,50 +107,31 @@
                 <div id="messagesArea" class="messages-area">
                     <div class="text-muted text-center py-5">Выберите чат слева</div>
                 </div>
-                <div id="messageInputContainer" style="display:none; padding:15px; border-top:1px solid #dee2e6;">
-                    <div class="input-group">
-                        <button class="btn btn-outline-secondary" type="button" id="stickerToggleBtn"><i class="fas fa-smile"></i></button>
+                <div id="messageInputContainer" style="display:none; padding:15px; border-top:1px solid #dee2e6; position: relative;">
+                    <!-- Кнопка стикеров -->
+                    <button class="btn btn-outline-secondary" id="stickerBtn" style="position: absolute; left: 25px; top: 15px;">😊</button>
+                    <!-- Панель стикеров -->
+                    <div id="stickerPanel" class="sticker-panel">
+                        <div class="sticker-grid" id="stickerGrid">
+                            <!-- Стикеры будут добавлены через JS -->
+                        </div>
+                    </div>
+                    <div class="input-group" style="padding-left: 50px;">
                         <input type="text" id="messageInput" class="form-control" placeholder="Введите сообщение...">
                         <button class="btn btn-primary" id="sendButton">Отправить</button>
-                    </div>
-                    <!-- Панель стикеров (изначально скрыта) -->
-                    <div id="stickerPanel" class="sticker-panel">
-                        <div class="sticker-grid">
-                            <!-- Популярные эмодзи (можно заменить на свои) -->
-                            <div class="sticker-item">😀</div>
-                            <div class="sticker-item">😂</div>
-                            <div class="sticker-item">😍</div>
-                            <div class="sticker-item">🥺</div>
-                            <div class="sticker-item">😎</div>
-                            <div class="sticker-item">😡</div>
-                            <div class="sticker-item">👍</div>
-                            <div class="sticker-item">👎</div>
-                            <div class="sticker-item">🔥</div>
-                            <div class="sticker-item">🎉</div>
-                            <div class="sticker-item">❤️</div>
-                            <div class="sticker-item">💔</div>
-                            <div class="sticker-item">🤔</div>
-                            <div class="sticker-item">😭</div>
-                            <div class="sticker-item">🥳</div>
-                            <div class="sticker-item">😱</div>
-                            <div class="sticker-item">🤮</div>
-                            <div class="sticker-item">💩</div>
-                            <div class="sticker-item">👻</div>
-                            <div class="sticker-item">🤖</div>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK и код приложения -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <script>
-        // Конфигурация Firebase (ваша)
+        // 🔥 ВАША КОНФИГУРАЦИЯ FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyCsLl9HXoauEKn5dBMCioT2OoHkJ_8IECg",
             authDomain: "my-simple-chat-cc22e.firebaseapp.com",
@@ -171,7 +149,19 @@
         const chatsRef = db.ref('chats');
         const messagesRef = db.ref('messages');
 
+        // ID общего чата
         const PUBLIC_CHAT_ID = 'global_chat';
+
+        // Список доступных аватарок (классы Font Awesome)
+        const avatars = [
+            'fas fa-user', 'fas fa-cat', 'fas fa-dog', 'fas fa-robot', 'fas fa-smile',
+            'fas fa-heart', 'fas fa-star', 'fas fa-sun', 'fas fa-moon', 'fas fa-cloud',
+            'fas fa-tree', 'fas fa-car', 'fas fa-bicycle', 'fas fa-music', 'fas fa-camera',
+            'fas fa-book', 'fas fa-coffee', 'fas fa-utensils', 'fas fa-futbol', 'fas fa-gem'
+        ];
+
+        // Список стикеров (эмодзи)
+        const stickers = ['😊', '😂', '😍', '👍', '🎉', '😢', '😡', '🤔', '🙏', '🔥', '⭐', '💔', '✅', '❌', '❗', '❓', '📌', '💡', '🎈', '🏆'];
 
         // Элементы DOM
         const authContainer = document.getElementById('authContainer');
@@ -197,15 +187,81 @@
         const messageInputContainer = document.getElementById('messageInputContainer');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
-        // Элементы стикеров
-        const stickerToggleBtn = document.getElementById('stickerToggleBtn');
+        const stickerBtn = document.getElementById('stickerBtn');
         const stickerPanel = document.getElementById('stickerPanel');
-        const stickerItems = document.querySelectorAll('.sticker-item');
+        const stickerGrid = document.getElementById('stickerGrid');
+        const overlay = document.getElementById('overlay');
+        const avatarSelector = document.getElementById('avatarSelector');
+        const avatarGrid = document.getElementById('avatarGrid');
+        const closeAvatarBtn = document.getElementById('closeAvatarBtn');
+        const currentUserBlock = document.getElementById('currentUserBlock');
+        const currentUserAvatar = document.getElementById('currentUserAvatar');
+        const currentUserName = document.getElementById('currentUserName');
 
+        // Переменные состояния
         let currentUser = null;
         let currentChatId = null;
         let currentChatType = null;
         let messagesListener = null;
+
+        // ---------- ИНИЦИАЛИЗАЦИЯ СТИКЕРОВ ----------
+        stickers.forEach(sticker => {
+            const div = document.createElement('div');
+            div.classList.add('sticker');
+            div.textContent = sticker;
+            div.addEventListener('click', () => {
+                messageInput.value += sticker;
+                stickerPanel.style.display = 'none';
+            });
+            stickerGrid.appendChild(div);
+        });
+
+        stickerBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            stickerPanel.style.display = stickerPanel.style.display === 'none' ? 'block' : 'none';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!stickerPanel.contains(e.target) && !stickerBtn.contains(e.target)) {
+                stickerPanel.style.display = 'none';
+            }
+        });
+
+        // ---------- АВАТАРКИ ----------
+        // Заполняем сетку аватарок
+        avatars.forEach(iconClass => {
+            const div = document.createElement('div');
+            div.classList.add('avatar-option');
+            div.innerHTML = `<i class="${iconClass}"></i>`;
+            div.dataset.icon = iconClass;
+            div.addEventListener('click', async () => {
+                if (currentUser) {
+                    await usersRef.child(currentUser.uid).update({ avatar: iconClass });
+                    // Обновить отображение у текущего пользователя
+                    currentUserAvatar.className = iconClass;
+                    // Закрыть окно
+                    avatarSelector.style.display = 'none';
+                    overlay.style.display = 'none';
+                }
+            });
+            avatarGrid.appendChild(div);
+        });
+
+        // Открыть выбор аватарки при клике на блок пользователя
+        currentUserBlock.addEventListener('click', () => {
+            avatarSelector.style.display = 'block';
+            overlay.style.display = 'block';
+        });
+
+        closeAvatarBtn.addEventListener('click', () => {
+            avatarSelector.style.display = 'none';
+            overlay.style.display = 'none';
+        });
+
+        overlay.addEventListener('click', () => {
+            avatarSelector.style.display = 'none';
+            overlay.style.display = 'none';
+        });
 
         // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
         function clearErrors() {
@@ -245,7 +301,13 @@
             try {
                 const cred = await auth.createUserWithEmailAndPassword(email, password);
                 await cred.user.updateProfile({ displayName: name });
-                await usersRef.child(cred.user.uid).set({ name, email });
+                // Сохраняем пользователя в БД с аватаркой по умолчанию
+                await usersRef.child(cred.user.uid).set({
+                    name,
+                    email,
+                    avatar: 'fas fa-user' // аватарка по умолчанию
+                });
+                // Добавляем пользователя в общий чат
                 await addUserToPublicChat(cred.user.uid);
             } catch (e) {
                 registerError.textContent = e.message;
@@ -273,6 +335,14 @@
                 currentUser = user;
                 authContainer.style.display = 'none';
                 chatContainer.style.display = 'block';
+
+                // Отображаем имя и аватарку текущего пользователя
+                currentUserName.textContent = user.displayName || user.email;
+                // Получаем аватарку из БД
+                const userSnap = await usersRef.child(user.uid).once('value');
+                const userData = userSnap.val() || {};
+                currentUserAvatar.className = userData.avatar || 'fas fa-user';
+
                 await ensurePublicChatExists();
                 await addUserToPublicChat(user.uid);
                 loadUsers();
@@ -281,6 +351,7 @@
                 currentUser = null;
                 authContainer.style.display = 'block';
                 chatContainer.style.display = 'none';
+                // Очищаем поля
                 loginEmail.value = loginPassword.value = registerName.value = registerEmail.value = registerPassword.value = '';
                 clearErrors();
                 if (messagesListener) {
@@ -288,12 +359,10 @@
                     messagesListener = null;
                 }
                 currentChatId = null;
-                // Скрыть панель стикеров
-                stickerPanel.style.display = 'none';
             }
         });
 
-        // ---------- ОБЩИЙ ЧАТ ----------
+        // ---------- УБЕДИТЬСЯ, ЧТО ОБЩИЙ ЧАТ СУЩЕСТВУЕТ ----------
         async function ensurePublicChatExists() {
             const publicChatSnap = await chatsRef.child(PUBLIC_CHAT_ID).once('value');
             if (!publicChatSnap.exists()) {
@@ -307,20 +376,23 @@
             }
         }
 
+        // ---------- ДОБАВИТЬ ПОЛЬЗОВАТЕЛЯ В ОБЩИЙ ЧАТ ----------
         async function addUserToPublicChat(uid) {
             await usersRef.child(uid).child('chats').child(PUBLIC_CHAT_ID).set(true);
             await chatsRef.child(PUBLIC_CHAT_ID).child('participants').child(uid).set(true);
         }
 
-        // ---------- ЗАГРУЗКА ПОЛЬЗОВАТЕЛЕЙ ----------
+        // ---------- ЗАГРУЗКА ВСЕХ ПОЛЬЗОВАТЕЛЕЙ (КРОМЕ СЕБЯ) ----------
         function loadUsers() {
             usersRef.on('value', (snapshot) => {
                 const users = snapshot.val() || {};
                 let html = '';
                 for (let uid in users) {
                     if (uid === currentUser.uid) continue;
-                    html += `<div class="list-group-item user-item" data-uid="${uid}" data-name="${users[uid].name}">
-                        <strong>${users[uid].name}</strong><br><small>${users[uid].email}</small>
+                    const user = users[uid];
+                    html += `<div class="list-group-item user-item" data-uid="${uid}" data-name="${user.name}">
+                        <i class="${user.avatar || 'fas fa-user'}" style="font-size: 1.5rem; width: 30px;"></i>
+                        <div><strong>${user.name}</strong><br><small>${user.email}</small></div>
                     </div>`;
                 }
                 usersListDiv.innerHTML = html || '<div class="text-muted">Нет других пользователей</div>';
@@ -366,7 +438,7 @@
             openChat(chatId, 'private', otherName);
         }
 
-        // ---------- ЗАГРУЗКА ЧАТОВ ----------
+        // ---------- ЗАГРУЗКА СПИСКА ЧАТОВ ----------
         function loadChats() {
             usersRef.child(currentUser.uid).child('chats').on('value', async (snapshot) => {
                 const chatIds = snapshot.val() || {};
@@ -376,14 +448,17 @@
                     const chat = chatSnap.val();
                     if (!chat) continue;
                     let displayName = '';
+                    let avatarIcon = 'fas fa-user';
                     if (chatId === PUBLIC_CHAT_ID) {
                         displayName = '🌟 Общий чат';
+                        avatarIcon = 'fas fa-globe';
                     } else {
                         const otherUid = Object.keys(chat.participants || {}).find(id => id !== currentUser.uid);
                         if (otherUid) {
                             const userSnap = await usersRef.child(otherUid).once('value');
                             const user = userSnap.val();
                             displayName = user ? user.name : 'Пользователь';
+                            avatarIcon = user ? user.avatar || 'fas fa-user' : 'fas fa-user';
                         } else {
                             displayName = 'Чат';
                         }
@@ -391,7 +466,8 @@
                     const lastMsg = chat.lastMessage || 'Нет сообщений';
                     const activeClass = chatId === currentChatId ? 'active' : '';
                     html += `<div class="chat-item ${activeClass}" data-chatid="${chatId}" data-type="${chat.type || 'private'}" data-name="${displayName}">
-                        <strong>${displayName}</strong><br><small>${lastMsg.substring(0,30)}</small>
+                        <i class="${avatarIcon}" style="font-size: 1.5rem; width: 30px;"></i>
+                        <div><strong>${displayName}</strong><br><small>${lastMsg.substring(0,30)}</small></div>
                     </div>`;
                 }
                 chatsListDiv.innerHTML = html || '<div class="text-muted">У вас пока нет чатов</div>';
@@ -413,6 +489,7 @@
             currentChatHeader.innerHTML = `<h5 class="mb-0">${displayName}</h5>`;
             messageInputContainer.style.display = 'block';
             messagesArea.innerHTML = '';
+
             if (messagesListener) {
                 messagesRef.child(currentChatId).off('child_added', messagesListener);
             }
@@ -420,6 +497,7 @@
                 const msg = snap.val();
                 displayMessage(msg);
             });
+
             document.querySelectorAll('.chat-item').forEach(el => {
                 if (el.dataset.chatid === chatId) {
                     el.classList.add('active');
@@ -427,23 +505,34 @@
                     el.classList.remove('active');
                 }
             });
-            // Скрыть панель стикеров при смене чата
-            stickerPanel.style.display = 'none';
         }
 
-        // ---------- ОТОБРАЖЕНИЕ СООБЩЕНИЯ ----------
-        function displayMessage(msg) {
+        // ---------- ОТОБРАЖЕНИЕ СООБЩЕНИЯ С АВАТАРКОЙ ----------
+        async function displayMessage(msg) {
             if (!messagesArea) return;
             if (messagesArea.innerHTML.includes('Выберите чат') || messagesArea.innerHTML.includes('Загрузка')) {
                 messagesArea.innerHTML = '';
             }
             const isMy = msg.senderId === currentUser.uid;
+
+            // Получаем аватарку отправителя
+            let avatarIcon = 'fas fa-user';
+            if (!isMy) {
+                const userSnap = await usersRef.child(msg.senderId).once('value');
+                const userData = userSnap.val();
+                avatarIcon = userData?.avatar || 'fas fa-user';
+            } else {
+                avatarIcon = currentUserAvatar.className;
+            }
+
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${isMy ? 'my-message' : 'other-message'}`;
             const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            // Просто текст, но он может содержать эмодзи, они отобразятся
             msgDiv.innerHTML = `
-                <div class="message-info">${msg.senderName || 'Пользователь'} · ${time}</div>
+                <div class="message-info">
+                    <i class="${avatarIcon}" style="font-size: 1rem; width: 20px;"></i>
+                    <span>${msg.senderName || 'Пользователь'} · ${time}</span>
+                </div>
                 <div class="message-bubble">${msg.text}</div>
             `;
             messagesArea.appendChild(msgDiv);
@@ -470,31 +559,6 @@
 
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendButton.click();
-        });
-
-        // ---------- ОБРАБОТКА СТИКЕРОВ ----------
-        // Показать/скрыть панель стикеров
-        stickerToggleBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            stickerPanel.style.display = stickerPanel.style.display === 'none' ? 'block' : 'none';
-        });
-
-        // При клике на стикер вставляем его в поле ввода
-        stickerItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const sticker = item.textContent;
-                messageInput.value += sticker;
-                messageInput.focus();
-                // Можно автоматически скрывать панель после выбора
-                stickerPanel.style.display = 'none';
-            });
-        });
-
-        // Скрыть панель при клике вне её
-        document.addEventListener('click', (e) => {
-            if (!stickerPanel.contains(e.target) && e.target !== stickerToggleBtn) {
-                stickerPanel.style.display = 'none';
-            }
         });
     </script>
 </body>
