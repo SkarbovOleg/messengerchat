@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мессенджер — real-time личные чаты</title>
+    <title>Мессенджер — онлайн статус</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -44,6 +44,29 @@
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; }
         .current-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px; border-radius: 8px; margin-bottom: 15px; }
         .current-user:hover { background: #e4e6eb; }
+
+        /* Индикатор онлайн */
+        .online-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: 5px;
+            background-color: #31a24c;
+        }
+        .offline-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: 5px;
+            background-color: #9a9a9a;
+        }
+        .last-seen {
+            font-size: 0.7rem;
+            color: #65676b;
+            margin-left: 5px;
+        }
 
         /* Тёмная тема */
         body.dark-theme {
@@ -161,6 +184,7 @@
                     <div class="current-user" id="currentUserBlock" style="margin-bottom:0;">
                         <i id="currentUserAvatar" class="fas fa-user" style="font-size: 1.8rem;"></i>
                         <span id="currentUserName"></span>
+                        <span id="currentUserStatus" class="last-seen"></span>
                     </div>
                     <div>
                         <button class="btn btn-sm btn-outline-secondary" id="themeToggle" title="Переключить тему">🌙</button>
@@ -180,8 +204,9 @@
             </div>
 
             <div class="col-md-8 main-chat">
-                <div id="currentChatHeader" class="current-chat-header">
+                <div id="currentChatHeader" class="current-chat-header d-flex align-items-center">
                     <h5 class="mb-0">Выберите чат</h5>
+                    <span id="currentChatStatus" class="last-seen ms-2"></span>
                 </div>
                 <div id="messagesArea" class="messages-area">
                     <div class="text-muted text-center py-5">Выберите чат слева</div>
@@ -273,6 +298,8 @@
             const currentUserBlock = $('currentUserBlock');
             const currentUserAvatar = $('currentUserAvatar');
             const currentUserName = $('currentUserName');
+            const currentUserStatus = $('currentUserStatus');
+            const currentChatStatus = $('currentChatStatus');
             const themeToggle = $('themeToggle');
 
             // Тема
@@ -298,13 +325,30 @@
             let currentUser = null;
             let currentChatId = null;
             let currentChatType = null;
+            let currentOtherUserId = null; // для отображения статуса в шапке
             let messagesListener = null;
-            // Хранилище активных слушателей на каждый чат
             let chatListeners = {};
+            let userStatusListener = null; // для отслеживания статуса собеседника
 
             function safeAddListener(element, event, handler) {
                 if (element) element.addEventListener(event, handler);
                 else console.warn(`Element not found: ${event}`);
+            }
+
+            // Форматирование времени последнего визита
+            function formatLastSeen(timestamp) {
+                if (!timestamp) return '';
+                const now = Date.now();
+                const diff = now - timestamp;
+                const seconds = Math.floor(diff / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+
+                if (seconds < 60) return 'только что';
+                if (minutes < 60) return `${minutes} ${minutes === 1 ? 'минуту' : 'минут'} назад`;
+                if (hours < 24) return `${hours} ${hours === 1 ? 'час' : 'часов'} назад`;
+                return `${days} ${days === 1 ? 'день' : 'дней'} назад`;
             }
 
             // Стикеры
@@ -408,10 +452,13 @@
                 try {
                     const cred = await auth.createUserWithEmailAndPassword(email, password);
                     await cred.user.updateProfile({ displayName: name });
+                    // При регистрации создаём запись с online: false
                     await usersRef.child(cred.user.uid).set({
                         name: name,
                         email: email,
-                        avatar: 'fas fa-user'
+                        avatar: 'fas fa-user',
+                        online: false,
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP
                     });
                     await addUserToPublicChat(cred.user.uid);
                 } catch (e) {
@@ -436,12 +483,38 @@
             });
 
             // Выход
-            safeAddListener(logoutBtn, 'click', () => auth.signOut());
+            safeAddListener(logoutBtn, 'click', async () => {
+                if (currentUser) {
+                    // Устанавливаем offline перед выходом
+                    await usersRef.child(currentUser.uid).update({
+                        online: false,
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP
+                    });
+                }
+                auth.signOut();
+            });
+
+            // Установка статуса онлайн и onDisconnect
+            async function setUserOnline(uid) {
+                const userRef = usersRef.child(uid);
+                // Устанавливаем онлайн
+                await userRef.update({
+                    online: true,
+                    lastSeen: firebase.database.ServerValue.TIMESTAMP
+                });
+                // При отключении устанавливаем offline
+                userRef.onDisconnect().update({
+                    online: false,
+                    lastSeen: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
 
             // Состояние пользователя
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUser = user;
+                    await setUserOnline(user.uid);
+
                     if (authContainer) authContainer.style.display = 'none';
                     if (chatContainer) chatContainer.style.display = 'block';
 
@@ -449,18 +522,25 @@
                     const userSnap = await usersRef.child(user.uid).once('value');
                     const userData = userSnap.val() || {};
                     if (currentUserAvatar) currentUserAvatar.className = userData.avatar || 'fas fa-user';
+                    // Статус текущего пользователя (всегда онлайн для себя)
+                    if (currentUserStatus) currentUserStatus.innerHTML = '<span class="online-indicator"></span> онлайн';
 
                     await ensurePublicChatExists();
                     await addUserToPublicChat(user.uid);
                     loadUsers();
                     loadChats();
                 } else {
-                    // Отписываемся от всех слушателей чатов
+                    // Отписываемся от всех слушателей
                     for (let chatId in chatListeners) {
                         chatListeners[chatId].off();
                     }
                     chatListeners = {};
+                    if (userStatusListener) {
+                        userStatusListener.off();
+                        userStatusListener = null;
+                    }
                     currentUser = null;
+                    currentOtherUserId = null;
                     if (authContainer) authContainer.style.display = 'block';
                     if (chatContainer) chatContainer.style.display = 'none';
                     if (loginEmail) loginEmail.value = '';
@@ -503,9 +583,16 @@
                     for (let uid in users) {
                         if (uid === currentUser.uid) continue;
                         const user = users[uid];
+                        const statusClass = user.online ? 'online-indicator' : 'offline-indicator';
+                        const lastSeenText = user.online ? '' : formatLastSeen(user.lastSeen);
                         html += `<div class="list-group-item user-item" data-uid="${uid}" data-name="${user.name}">
                             <i class="${user.avatar || 'fas fa-user'}" style="font-size: 1.5rem; width: 30px;"></i>
-                            <div><strong>${user.name}</strong><br><small>${user.email}</small></div>
+                            <div>
+                                <strong>${user.name}</strong>
+                                <span class="${statusClass}"></span>
+                                <span class="last-seen">${lastSeenText}</span>
+                                <br><small>${user.email}</small>
+                            </div>
                         </div>`;
                     }
                     if (usersListDiv) usersListDiv.innerHTML = html || '<div class="text-muted">Нет других пользователей</div>';
@@ -533,63 +620,15 @@
                     await usersRef.child(currentUser.uid).child('chats').child(chatId).set(true);
                     await usersRef.child(otherUid).child('chats').child(chatId).set(true);
                 } else {
-                    // Если чат уже есть, но у пользователя нет ссылки (восстановление)
                     await usersRef.child(currentUser.uid).child('chats').child(chatId).set(true);
                 }
-                openChat(chatId, 'private', otherName);
+                openChat(chatId, 'private', otherName, otherUid);
             }
 
-            // Функция обновления одного элемента чата в списке (будет вызываться из слушателей)
-            async function refreshChatItem(chatId) {
-                if (!chatsListDiv) return;
-                // Найдём элемент с этим chatId в текущем списке и обновим его данные
-                // Проще перестроить весь список, но чтобы не терять слушатели, обновим только нужный элемент
-                // Для простоты перестроим весь список, но аккуратно
-                const chatIdsSnap = await usersRef.child(currentUser.uid).child('chats').once('value');
-                const chatIds = chatIdsSnap.val() || {};
-                let html = '';
-                for (let id in chatIds) {
-                    const chatSnap = await chatsRef.child(id).once('value');
-                    const chat = chatSnap.val();
-                    if (!chat) continue;
-                    let displayName = '', avatarIcon = 'fas fa-user';
-                    if (id === PUBLIC_CHAT_ID) {
-                        displayName = '🌟 Общий чат';
-                        avatarIcon = 'fas fa-globe';
-                    } else {
-                        const otherUid = Object.keys(chat.participants || {}).find(uid => uid !== currentUser.uid);
-                        if (otherUid) {
-                            const userSnap = await usersRef.child(otherUid).once('value');
-                            const user = userSnap.val();
-                            displayName = user ? user.name : 'Пользователь';
-                            avatarIcon = user ? user.avatar || 'fas fa-user' : 'fas fa-user';
-                        } else {
-                            displayName = 'Чат';
-                        }
-                    }
-                    const lastMsg = chat.lastMessage || 'Нет сообщений';
-                    const activeClass = id === currentChatId ? 'active' : '';
-                    html += `<div class="chat-item ${activeClass}" data-chatid="${id}" data-type="${chat.type || 'private'}" data-name="${displayName}">
-                        <i class="${avatarIcon}" style="font-size: 1.5rem; width: 30px;"></i>
-                        <div><strong>${displayName}</strong><br><small>${lastMsg.substring(0,30)}</small></div>
-                    </div>`;
-                }
-                chatsListDiv.innerHTML = html || '<div class="text-muted">У вас пока нет чатов</div>';
-                document.querySelectorAll('.chat-item').forEach(el => {
-                    el.addEventListener('click', () => {
-                        const chatId = el.dataset.chatid;
-                        const type = el.dataset.type;
-                        const name = el.dataset.name;
-                        openChat(chatId, type, name);
-                    });
-                });
-            }
-
-            // Загрузка списка чатов и установка слушателей на каждый чат
+            // Загрузка списка чатов и установка слушателей
             function loadChats() {
                 usersRef.child(currentUser.uid).child('chats').on('value', async (snapshot) => {
                     const chatIds = snapshot.val() || {};
-                    const currentChatIds = Object.keys(chatIds);
 
                     // Отписываемся от слушателей для чатов, которых больше нет
                     for (let chatId in chatListeners) {
@@ -603,20 +642,17 @@
                     for (let chatId in chatIds) {
                         if (!chatListeners[chatId]) {
                             const chatRef = chatsRef.child(chatId);
-                            const listener = chatRef.on('value', (chatSnap) => {
-                                // При любом изменении чата (включая lastMessage) обновляем список
-                                refreshChatItem(chatId);
+                            const listener = chatRef.on('value', () => {
+                                refreshChatList();
                             });
                             chatListeners[chatId] = { off: () => chatRef.off('value', listener) };
                         }
                     }
 
-                    // Первичная отрисовка
                     await refreshChatList();
                 });
             }
 
-            // Функция для полной перерисовки списка (без потери слушателей)
             async function refreshChatList() {
                 const chatIdsSnap = await usersRef.child(currentUser.uid).child('chats').once('value');
                 const chatIds = chatIdsSnap.val() || {};
@@ -625,12 +661,12 @@
                     const chatSnap = await chatsRef.child(id).once('value');
                     const chat = chatSnap.val();
                     if (!chat) continue;
-                    let displayName = '', avatarIcon = 'fas fa-user';
+                    let displayName = '', avatarIcon = 'fas fa-user', otherUid = null;
                     if (id === PUBLIC_CHAT_ID) {
                         displayName = '🌟 Общий чат';
                         avatarIcon = 'fas fa-globe';
                     } else {
-                        const otherUid = Object.keys(chat.participants || {}).find(uid => uid !== currentUser.uid);
+                        otherUid = Object.keys(chat.participants || {}).find(uid => uid !== currentUser.uid);
                         if (otherUid) {
                             const userSnap = await usersRef.child(otherUid).once('value');
                             const user = userSnap.val();
@@ -642,9 +678,25 @@
                     }
                     const lastMsg = chat.lastMessage || 'Нет сообщений';
                     const activeClass = id === currentChatId ? 'active' : '';
-                    html += `<div class="chat-item ${activeClass}" data-chatid="${id}" data-type="${chat.type || 'private'}" data-name="${displayName}">
+
+                    // Для личных чатов получаем статус собеседника
+                    let statusHtml = '';
+                    if (id !== PUBLIC_CHAT_ID && otherUid) {
+                        const userSnap = await usersRef.child(otherUid).once('value');
+                        const user = userSnap.val();
+                        if (user) {
+                            const statusClass = user.online ? 'online-indicator' : 'offline-indicator';
+                            const lastSeenText = user.online ? '' : formatLastSeen(user.lastSeen);
+                            statusHtml = `<span class="${statusClass}"></span><span class="last-seen">${lastSeenText}</span>`;
+                        }
+                    }
+
+                    html += `<div class="chat-item ${activeClass}" data-chatid="${id}" data-type="${chat.type || 'private'}" data-name="${displayName}" data-otheruid="${otherUid || ''}">
                         <i class="${avatarIcon}" style="font-size: 1.5rem; width: 30px;"></i>
-                        <div><strong>${displayName}</strong><br><small>${lastMsg.substring(0,30)}</small></div>
+                        <div>
+                            <strong>${displayName}</strong> ${statusHtml}
+                            <br><small>${lastMsg.substring(0,30)}</small>
+                        </div>
                     </div>`;
                 }
                 chatsListDiv.innerHTML = html || '<div class="text-muted">У вас пока нет чатов</div>';
@@ -653,16 +705,43 @@
                         const chatId = el.dataset.chatid;
                         const type = el.dataset.type;
                         const name = el.dataset.name;
-                        openChat(chatId, type, name);
+                        const otherUid = el.dataset.otheruid;
+                        openChat(chatId, type, name, otherUid);
                     });
                 });
             }
 
             // Открыть чат
-            function openChat(chatId, type, displayName) {
+            function openChat(chatId, type, displayName, otherUid) {
                 currentChatId = chatId;
                 currentChatType = type;
-                if (currentChatHeader) currentChatHeader.innerHTML = `<h5 class="mb-0">${displayName}</h5>`;
+                currentOtherUserId = otherUid || null;
+
+                if (currentChatHeader) {
+                    currentChatHeader.innerHTML = `<h5 class="mb-0">${displayName}</h5>`;
+                    // Добавляем статус в шапку
+                    if (type === 'private' && otherUid) {
+                        updateChatHeaderStatus(otherUid);
+                        // Подписываемся на изменения статуса собеседника
+                        if (userStatusListener) {
+                            userStatusListener.off();
+                        }
+                        const otherUserRef = usersRef.child(otherUid);
+                        userStatusListener = otherUserRef.on('value', (snap) => {
+                            const user = snap.val();
+                            if (user) {
+                                updateChatHeaderStatus(otherUid);
+                            }
+                        });
+                    } else {
+                        if (currentChatStatus) currentChatStatus.innerHTML = '';
+                        if (userStatusListener) {
+                            userStatusListener.off();
+                            userStatusListener = null;
+                        }
+                    }
+                }
+
                 if (messageInputContainer) messageInputContainer.style.display = 'block';
                 if (messagesArea) messagesArea.innerHTML = '';
 
@@ -678,6 +757,19 @@
                     if (el.dataset.chatid === chatId) el.classList.add('active');
                     else el.classList.remove('active');
                 });
+            }
+
+            // Обновление статуса в шапке чата
+            async function updateChatHeaderStatus(uid) {
+                const userSnap = await usersRef.child(uid).once('value');
+                const user = userSnap.val();
+                if (user && currentChatStatus) {
+                    if (user.online) {
+                        currentChatStatus.innerHTML = '<span class="online-indicator"></span> онлайн';
+                    } else {
+                        currentChatStatus.innerHTML = `<span class="offline-indicator"></span> был(а) ${formatLastSeen(user.lastSeen)}`;
+                    }
+                }
             }
 
             // Отображение сообщения
