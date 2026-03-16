@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мессенджер с поиском</title>
+    <title>Мессенджер</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f0f2f5; }
@@ -23,8 +23,8 @@
         .chat-item { padding: 10px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; transition: background 0.2s; }
         .chat-item:hover { background: #e4e6eb; }
         .chat-item.active { background: #e7f3ff; border-left: 3px solid #0084ff; }
-        .search-result { padding: 8px; border-bottom: 1px solid #dee2e6; cursor: pointer; }
-        .search-result:hover { background: #f0f2f5; }
+        .user-item { cursor: pointer; }
+        .user-item:hover { background-color: #e7f3ff; }
         .error-message { color: red; font-size: 0.9rem; margin-top: 5px; }
         .current-chat-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; }
     </style>
@@ -78,17 +78,19 @@
     <!-- Контейнер чата (изначально скрыт) -->
     <div id="chatContainer" class="chat-container container-fluid">
         <div class="row">
-            <!-- Левая панель (список чатов и поиск) -->
+            <!-- Левая панель (список чатов и список пользователей) -->
             <div class="col-md-4 sidebar">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5>Мои чаты</h5>
                     <button class="btn btn-outline-danger btn-sm" id="logoutBtn">Выйти</button>
                 </div>
                 
-                <!-- Поиск пользователей -->
+                <!-- Список всех пользователей (кроме текущего) -->
                 <div class="mb-3">
-                    <input type="text" id="searchInput" class="form-control" placeholder="🔍 Найти пользователя...">
-                    <div id="searchResults" class="mt-2" style="max-height: 200px; overflow-y: auto;"></div>
+                    <h6>Другие пользователи</h6>
+                    <div id="usersList" style="max-height: 200px; overflow-y: auto;" class="list-group">
+                        <div class="text-muted text-center py-2">Загрузка пользователей...</div>
+                    </div>
                 </div>
                 
                 <!-- Список чатов -->
@@ -104,7 +106,7 @@
                 </div>
                 
                 <div id="messagesArea" class="messages-area">
-                    <div class="text-muted text-center py-5">Начните диалог, выбрав чат слева или найдя пользователя</div>
+                    <div class="text-muted text-center py-5">Начните диалог, выбрав пользователя слева</div>
                 </div>
                 
                 <div id="messageInputContainer" style="display: none; padding: 15px; border-top: 1px solid #dee2e6;">
@@ -123,7 +125,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <script>
-        // 🔥 ТВОЯ КОНФИГУРАЦИЯ (та же, что и раньше)
+        // 🔥 ТВОЯ КОНФИГУРАЦИЯ
         const firebaseConfig = {
             apiKey: "AIzaSyCsLl9HXoauEKn5dBMCioT2OoHkJ_8IECg",
             authDomain: "my-simple-chat-cc22e.firebaseapp.com",
@@ -167,8 +169,7 @@
         const registerPassword = document.getElementById('registerPassword');
         
         // Элементы чата
-        const searchInput = document.getElementById('searchInput');
-        const searchResults = document.getElementById('searchResults');
+        const usersListDiv = document.getElementById('usersList');
         const chatsList = document.getElementById('chatsList');
         const currentChatHeader = document.getElementById('currentChatHeader');
         const messagesArea = document.getElementById('messagesArea');
@@ -179,7 +180,6 @@
         // Переменные состояния
         let currentUser = null;
         let currentChatId = null;
-        let currentChatParticipants = [];
         let messagesListener = null;
 
         // ========== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ==========
@@ -271,7 +271,7 @@
             auth.signOut();
             currentChatId = null;
             if (messagesListener) {
-                messagesListener.off();
+                messagesRef.child(currentChatId).off('child_added', messagesListener);
                 messagesListener = null;
             }
         });
@@ -286,8 +286,8 @@
                 // Загружаем список чатов пользователя
                 loadUserChats();
                 
-                // Настраиваем поиск пользователей
-                setupSearch();
+                // Загружаем список всех пользователей
+                loadAllUsers();
             } else {
                 currentUser = null;
                 authContainer.style.display = 'block';
@@ -307,7 +307,6 @@
         function loadUserChats() {
             if (!currentUser) return;
             
-            // Получаем список ID чатов пользователя
             usersRef.child(currentUser.uid).child('chats').on('value', (snapshot) => {
                 const chatIds = snapshot.val() || {};
                 renderChatsList(Object.keys(chatIds));
@@ -317,7 +316,7 @@
         // ========== ОТОБРАЖЕНИЕ СПИСКА ЧАТОВ ==========
         async function renderChatsList(chatIds) {
             if (chatIds.length === 0) {
-                chatsList.innerHTML = '<div class="text-muted text-center py-3">У вас пока нет чатов. Найдите пользователя, чтобы начать диалог.</div>';
+                chatsList.innerHTML = '<div class="text-muted text-center py-3">У вас пока нет чатов. Нажмите на пользователя, чтобы начать диалог.</div>';
                 return;
             }
 
@@ -328,7 +327,6 @@
                 
                 if (!chatData) continue;
                 
-                // Находим собеседника
                 const otherParticipantId = Object.keys(chatData.participants || {}).find(id => id !== currentUser.uid);
                 if (!otherParticipantId) continue;
                 
@@ -348,7 +346,6 @@
             
             chatsList.innerHTML = html;
             
-            // Добавляем обработчики кликов на чаты
             document.querySelectorAll('.chat-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const chatId = item.dataset.chatId;
@@ -359,95 +356,61 @@
             });
         }
 
-        // ========== ПОИСК ПОЛЬЗОВАТЕЛЕЙ ==========
-        function setupSearch() {
-            let searchTimeout;
-            
-            searchInput.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                const query = e.target.value.trim().toLowerCase();
-                
-                if (query.length < 2) {
-                    searchResults.innerHTML = '';
-                    return;
-                }
-                
-                searchTimeout = setTimeout(() => {
-                    // Поиск по имени (регистронезависимый) [citation:2]
-                    usersRef.orderByChild('name').startAt(query).endAt(query + '\uf8ff').once('value', (snapshot) => {
-                        const results = [];
-                        snapshot.forEach((childSnapshot) => {
-                            const userId = childSnapshot.key;
-                            const userData = childSnapshot.val();
-                            
-                            // Не показываем текущего пользователя
-                            if (userId !== currentUser.uid) {
-                                results.push({ id: userId, ...userData });
-                            }
-                        });
-                        
-                        displaySearchResults(results);
-                    });
-                }, 500);
-            });
-        }
+        // ========== ЗАГРУЗКА ВСЕХ ПОЛЬЗОВАТЕЛЕЙ (кроме текущего) ==========
+        function loadAllUsers() {
+            if (!currentUser) return;
 
-        // ========== ОТОБРАЖЕНИЕ РЕЗУЛЬТАТОВ ПОИСКА ==========
-        function displaySearchResults(users) {
-            if (users.length === 0) {
-                searchResults.innerHTML = '<div class="text-muted">Пользователи не найдены</div>';
-                return;
-            }
-            
-            let html = '<div class="list-group">';
-            users.forEach(user => {
-                html += `
-                    <div class="search-result list-group-item list-group-item-action" 
-                         data-user-id="${user.id}" 
-                         data-user-name="${user.name}">
-                        <strong>${user.name}</strong><br>
-                        <small>${user.email}</small>
-                    </div>
-                `;
-            });
-            html += '</div>';
-            
-            searchResults.innerHTML = html;
-            
-            // Добавляем обработчики на результаты поиска
-            document.querySelectorAll('.search-result').forEach(item => {
-                item.addEventListener('click', async () => {
-                    const userId = item.dataset.userId;
-                    const userName = item.dataset.userName;
-                    
-                    // Создаём или открываем чат с этим пользователем
-                    const chatId = await findOrCreatePrivateChat(currentUser.uid, userId);
-                    openChat(chatId, userId, userName);
-                    
-                    // Очищаем поиск
-                    searchInput.value = '';
-                    searchResults.innerHTML = '';
+            usersRef.on('value', (snapshot) => {
+                const usersObj = snapshot.val() || {};
+                let html = '';
+
+                for (const uid in usersObj) {
+                    if (uid === currentUser.uid) continue;
+
+                    const user = usersObj[uid];
+                    html += `
+                        <div class="list-group-item list-group-item-action user-item" 
+                             data-user-id="${uid}" 
+                             data-user-name="${user.name || 'Пользователь'}"
+                             style="cursor: pointer;">
+                            <strong>${user.name || 'Без имени'}</strong><br>
+                            <small>${user.email}</small>
+                        </div>
+                    `;
+                }
+
+                if (html === '') {
+                    usersListDiv.innerHTML = '<div class="text-muted text-center py-2">Нет других пользователей</div>';
+                } else {
+                    usersListDiv.innerHTML = html;
+                }
+
+                document.querySelectorAll('.user-item').forEach(item => {
+                    item.addEventListener('click', async () => {
+                        const userId = item.dataset.userId;
+                        const userName = item.dataset.userName;
+                        
+                        const chatId = await findOrCreatePrivateChat(currentUser.uid, userId);
+                        openChat(chatId, userId, userName);
+                    });
                 });
             });
         }
 
         // ========== ПОИСК ИЛИ СОЗДАНИЕ ПРИВАТНОГО ЧАТА ==========
         async function findOrCreatePrivateChat(uid1, uid2) {
-            // Проверяем, существует ли уже чат между этими пользователями
             const user1Chats = await usersRef.child(uid1).child('chats').once('value');
             const user1ChatIds = user1Chats.val() || {};
             
-            // Перебираем чаты пользователя и ищем общий с uid2
             for (const chatId of Object.keys(user1ChatIds)) {
                 const chatSnapshot = await chatsRef.child(chatId).once('value');
                 const chatData = chatSnapshot.val();
                 
                 if (chatData && chatData.participants && chatData.participants[uid2]) {
-                    return chatId; // Чат уже существует
+                    return chatId;
                 }
             }
             
-            // Создаём новый чат
             const newChatRef = chatsRef.push();
             const chatId = newChatRef.key;
             
@@ -464,7 +427,6 @@
             
             await newChatRef.set(chatData);
             
-            // Добавляем чат в список чатов обоих пользователей
             await usersRef.child(uid1).child('chats').child(chatId).set(true);
             await usersRef.child(uid2).child('chats').child(chatId).set(true);
             
@@ -475,27 +437,19 @@
         function openChat(chatId, otherUserId, otherUserName) {
             currentChatId = chatId;
             
-            // Обновляем заголовок
             currentChatHeader.innerHTML = `<h5 class="mb-0">Чат с ${otherUserName}</h5>`;
-            
-            // Показываем поле ввода
             messageInputContainer.style.display = 'block';
-            
-            // Очищаем сообщения
             messagesArea.innerHTML = '<div class="text-muted text-center py-5">Загрузка сообщений...</div>';
             
-            // Отписываемся от предыдущего слушателя
             if (messagesListener) {
                 messagesRef.child(currentChatId).off('child_added', messagesListener);
             }
             
-            // Подписываемся на новые сообщения [citation:2]
             messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snapshot) => {
                 const message = snapshot.val();
                 displayMessage(message);
             });
             
-            // Подсвечиваем активный чат в списке
             document.querySelectorAll('.chat-item').forEach(item => {
                 if (item.dataset.chatId === chatId) {
                     item.classList.add('active');
@@ -509,7 +463,6 @@
         function displayMessage(message) {
             if (!messagesArea) return;
             
-            // Убираем заглушку, если она есть
             if (messagesArea.innerHTML.includes('Загрузка сообщений') || 
                 messagesArea.innerHTML.includes('Выберите чат')) {
                 messagesArea.innerHTML = '';
@@ -548,10 +501,8 @@
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             };
             
-            // Сохраняем сообщение
             await messagesRef.child(currentChatId).push(messageData);
             
-            // Обновляем информацию о последнем сообщении в чате
             await chatsRef.child(currentChatId).update({
                 lastMessage: text,
                 lastMessageTime: firebase.database.ServerValue.TIMESTAMP
