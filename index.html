@@ -330,18 +330,18 @@
 
         // ========== ПОИСК ИЛИ СОЗДАНИЕ ПРИВАТНОГО ЧАТА ==========
         async function findOrCreatePrivateChat(uid1, uid2) {
-            // Проверяем существующие чаты
-            const snapshot = await chatsRef.once('value');
-            let existingChatId = null;
-            snapshot.forEach(chatSnapshot => {
-                const chat = chatSnapshot.val();
-                if (chat.participants && chat.participants[uid1] && chat.participants[uid2]) {
-                    existingChatId = chatSnapshot.key;
-                    return true; // break
+            // Проверяем, есть ли уже общий чат через users/{uid1}/chats
+            const userChatsSnap = await usersRef.child(uid1).child('chats').once('value');
+            const userChats = userChatsSnap.val() || {};
+            
+            for (let chatId in userChats) {
+                const chatSnap = await chatsRef.child(chatId).once('value');
+                const chatData = chatSnap.val();
+                if (chatData && chatData.participants && chatData.participants[uid2]) {
+                    return chatId; // чат уже есть
                 }
-            });
-            if (existingChatId) return existingChatId;
-
+            }
+            
             // Создаём новый чат
             const newChatRef = chatsRef.push();
             const chatId = newChatRef.key;
@@ -357,7 +357,7 @@
             
             await newChatRef.set(chatData);
             
-            // Добавляем ссылку на чат в профили пользователей
+            // Добавляем ссылку на чат в профили обоих пользователей (просто true)
             await usersRef.child(uid1).child('chats').child(chatId).set(true);
             await usersRef.child(uid2).child('chats').child(chatId).set(true);
             
@@ -368,7 +368,7 @@
         function loadUserChats() {
             if (!currentUser) return;
             
-            // Слушаем изменения в списке чатов пользователя (добавление/удаление чатов)
+            // Слушаем изменения в списке чатов пользователя (добавление/удаление)
             usersRef.child(currentUser.uid).child('chats').on('value', (snapshot) => {
                 const chatIdsMap = snapshot.val() || {};
                 const chatIds = Object.keys(chatIdsMap);
@@ -379,29 +379,28 @@
                 }
                 chatListeners = {};
                 
-                // Если нет чатов, показываем заглушку
                 if (chatIds.length === 0) {
                     chatsList.innerHTML = '<div class="text-muted text-center py-3">У вас пока нет чатов. Нажмите на пользователя, чтобы начать диалог.</div>';
                     return;
                 }
                 
-                // Для каждого чата устанавливаем слушатель на изменения самого чата (например, lastMessage)
+                // Для каждого чата устанавливаем слушатель на изменение данных в чате
                 chatIds.forEach(chatId => {
                     const chatRef = chatsRef.child(chatId);
                     const listener = chatRef.on('value', (chatSnap) => {
-                        // При любом изменении данных в чате (новое сообщение) перерисовываем список
-                        refreshChatsList();
+                        // При любом изменении (новое сообщение) перерисовываем список
+                        renderChatsList();
                     });
-                    chatListeners[chatId] = { ref: chatRef, off: () => chatRef.off('value', listener) };
+                    chatListeners[chatId] = { off: () => chatRef.off('value', listener) };
                 });
                 
-                // Первичная отрисовка списка
-                refreshChatsList();
+                // Первичная отрисовка
+                renderChatsList();
             });
         }
 
-        // ========== ОБНОВЛЕНИЕ СПИСКА ЧАТОВ (перерисовка) ==========
-        async function refreshChatsList() {
+        // ========== ОТРИСОВКА СПИСКА ЧАТОВ ==========
+        async function renderChatsList() {
             if (!currentUser) return;
             
             // Получаем актуальный список ID чатов
