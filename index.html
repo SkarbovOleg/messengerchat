@@ -3,113 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мессенджер</title>
+    <title>Мессенджер с общим чатом</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f0f2f5; }
-        .auth-container { max-width: 400px; margin: 50px auto; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .chat-container { display: none; max-width: 1200px; margin: 20px auto; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+        body { background: #f0f2f5; }
+        .auth-container { max-width: 400px; margin: 50px auto; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .chat-container { display: none; max-width: 1200px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .sidebar { background: #f8f9fa; border-right: 1px solid #dee2e6; height: 80vh; overflow-y: auto; padding: 15px; }
         .main-chat { height: 80vh; display: flex; flex-direction: column; }
         .messages-area { flex-grow: 1; overflow-y: auto; padding: 20px; background: #fff; }
         .message { margin-bottom: 15px; display: flex; flex-direction: column; }
         .my-message { align-items: flex-end; }
         .other-message { align-items: flex-start; }
-        .message-bubble { max-width: 70%; padding: 10px 15px; border-radius: 18px; position: relative; }
-        .my-message .message-bubble { background-color: #0084ff; color: white; border-bottom-right-radius: 4px; }
-        .other-message .message-bubble { background-color: #e4e6eb; color: black; border-bottom-left-radius: 4px; }
+        .message-bubble { max-width: 70%; padding: 10px 15px; border-radius: 18px; }
+        .my-message .message-bubble { background: #0084ff; color: white; }
+        .other-message .message-bubble { background: #e4e6eb; color: black; }
         .message-info { font-size: 0.75rem; color: #65676b; margin-bottom: 2px; margin-left: 10px; }
-        .my-message .message-info { text-align: right; }
-        .chat-item { padding: 10px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; transition: background 0.2s; }
-        .chat-item:hover { background: #e4e6eb; }
+        .chat-item, .user-item { padding: 10px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; }
+        .chat-item:hover, .user-item:hover { background: #e4e6eb; }
         .chat-item.active { background: #e7f3ff; border-left: 3px solid #0084ff; }
-        .user-item { cursor: pointer; }
-        .user-item:hover { background-color: #e7f3ff; }
-        .error-message { color: red; font-size: 0.9rem; margin-top: 5px; }
         .current-chat-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; }
+        .error-message { color: red; font-size: 0.9rem; }
     </style>
 </head>
 <body>
-    <!-- Контейнер для формы входа/регистрации -->
+    <!-- Форма входа/регистрации -->
     <div id="authContainer" class="auth-container">
         <h2 class="text-center mb-4">💬 Мессенджер</h2>
-        <ul class="nav nav-tabs mb-3" id="authTabs">
-            <li class="nav-item">
-                <button class="nav-link active" id="loginTab">Вход</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="registerTab">Регистрация</button>
-            </li>
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item"><button class="nav-link active" id="loginTab">Вход</button></li>
+            <li class="nav-item"><button class="nav-link" id="registerTab">Регистрация</button></li>
         </ul>
-        
-        <!-- Форма входа -->
         <div id="loginForm">
-            <div class="mb-3">
-                <label>Email</label>
-                <input type="email" id="loginEmail" class="form-control" placeholder="email@example.com">
-            </div>
-            <div class="mb-3">
-                <label>Пароль</label>
-                <input type="password" id="loginPassword" class="form-control" placeholder="••••••••">
-            </div>
+            <input type="email" id="loginEmail" class="form-control mb-2" placeholder="Email">
+            <input type="password" id="loginPassword" class="form-control mb-2" placeholder="Пароль">
             <button class="btn btn-primary w-100" id="loginBtn">Войти</button>
             <div id="loginError" class="error-message text-center mt-2"></div>
         </div>
-        
-        <!-- Форма регистрации -->
-        <div id="registerForm" style="display: none;">
-            <div class="mb-3">
-                <label>Имя (как вас видеть в чате)</label>
-                <input type="text" id="registerName" class="form-control" placeholder="Анна">
-            </div>
-            <div class="mb-3">
-                <label>Email</label>
-                <input type="email" id="registerEmail" class="form-control" placeholder="email@example.com">
-            </div>
-            <div class="mb-3">
-                <label>Пароль (минимум 6 символов)</label>
-                <input type="password" id="registerPassword" class="form-control" placeholder="••••••••">
-            </div>
+        <div id="registerForm" style="display:none;">
+            <input type="text" id="registerName" class="form-control mb-2" placeholder="Имя">
+            <input type="email" id="registerEmail" class="form-control mb-2" placeholder="Email">
+            <input type="password" id="registerPassword" class="form-control mb-2" placeholder="Пароль (минимум 6 символов)">
             <button class="btn btn-success w-100" id="registerBtn">Зарегистрироваться</button>
             <div id="registerError" class="error-message text-center mt-2"></div>
         </div>
     </div>
 
-    <!-- Контейнер чата (изначально скрыт) -->
-    <div id="chatContainer" class="chat-container container-fluid">
+    <!-- Основной интерфейс чата -->
+    <div id="chatContainer" class="chat-container container-fluid" style="display:none;">
         <div class="row">
-            <!-- Левая панель (список чатов и список пользователей) -->
+            <!-- Левая панель: список чатов и другие пользователи -->
             <div class="col-md-4 sidebar">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5>Мои чаты</h5>
                     <button class="btn btn-outline-danger btn-sm" id="logoutBtn">Выйти</button>
                 </div>
-                
-                <!-- Список всех пользователей (кроме текущего) -->
+
+                <!-- Другие пользователи (для создания личных чатов) -->
                 <div class="mb-3">
                     <h6>Другие пользователи</h6>
-                    <div id="usersList" style="max-height: 200px; overflow-y: auto;" class="list-group">
-                        <div class="text-muted text-center py-2">Загрузка пользователей...</div>
-                    </div>
+                    <div id="usersList" class="list-group" style="max-height:200px; overflow-y:auto;"></div>
                 </div>
-                
-                <!-- Список чатов -->
-                <div id="chatsList" style="max-height: calc(100% - 250px); overflow-y: auto;">
-                    <div class="text-muted text-center py-3">Загрузка чатов...</div>
+
+                <!-- Список чатов (общий и личные) -->
+                <div>
+                    <h6>Чаты</h6>
+                    <div id="chatsList" style="max-height:300px; overflow-y:auto;"></div>
                 </div>
             </div>
-            
-            <!-- Правая панель (текущий чат) -->
+
+            <!-- Правая панель: сообщения и отправка -->
             <div class="col-md-8 main-chat">
                 <div id="currentChatHeader" class="current-chat-header">
                     <h5 class="mb-0">Выберите чат</h5>
                 </div>
-                
                 <div id="messagesArea" class="messages-area">
-                    <div class="text-muted text-center py-5">Начните диалог, выбрав пользователя слева</div>
+                    <div class="text-muted text-center py-5">Выберите чат слева</div>
                 </div>
-                
-                <div id="messageInputContainer" style="display: none; padding: 15px; border-top: 1px solid #dee2e6;">
+                <div id="messageInputContainer" style="display:none; padding:15px; border-top:1px solid #dee2e6;">
                     <div class="input-group">
                         <input type="text" id="messageInput" class="form-control" placeholder="Введите сообщение...">
                         <button class="btn btn-primary" id="sendButton">Отправить</button>
@@ -119,13 +90,13 @@
         </div>
     </div>
 
-    <!-- Подключаем Firebase SDK -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <script>
-        // 🔥 ТВОЯ КОНФИГУРАЦИЯ
+        // 🔥 ВАША КОНФИГУРАЦИЯ FIREBASE (уже ваша, проверьте databaseURL)
         const firebaseConfig = {
             apiKey: "AIzaSyCsLl9HXoauEKn5dBMCioT2OoHkJ_8IECg",
             authDomain: "my-simple-chat-cc22e.firebaseapp.com",
@@ -136,19 +107,19 @@
             appId: "1:399768373584:web:f2b42157ac87c1c69d4455"
         };
 
-        const app = firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        const database = firebase.database();
-        
-        const usersRef = database.ref('users');
-        const chatsRef = database.ref('chats');
-        const messagesRef = database.ref('messages');
+        const db = firebase.database();
+        const usersRef = db.ref('users');
+        const chatsRef = db.ref('chats');
+        const messagesRef = db.ref('messages');
 
-        // Элементы интерфейса
+        // ID общего чата – фиксированный
+        const PUBLIC_CHAT_ID = 'global_chat';
+
+        // Элементы DOM
         const authContainer = document.getElementById('authContainer');
         const chatContainer = document.getElementById('chatContainer');
-        const logoutBtn = document.getElementById('logoutBtn');
-        
         const loginTab = document.getElementById('loginTab');
         const registerTab = document.getElementById('registerTab');
         const loginForm = document.getElementById('loginForm');
@@ -157,15 +128,14 @@
         const registerBtn = document.getElementById('registerBtn');
         const loginError = document.getElementById('loginError');
         const registerError = document.getElementById('registerError');
-        
         const loginEmail = document.getElementById('loginEmail');
         const loginPassword = document.getElementById('loginPassword');
         const registerName = document.getElementById('registerName');
         const registerEmail = document.getElementById('registerEmail');
         const registerPassword = document.getElementById('registerPassword');
-        
+        const logoutBtn = document.getElementById('logoutBtn');
         const usersListDiv = document.getElementById('usersList');
-        const chatsList = document.getElementById('chatsList');
+        const chatsListDiv = document.getElementById('chatsList');
         const currentChatHeader = document.getElementById('currentChatHeader');
         const messagesArea = document.getElementById('messagesArea');
         const messageInputContainer = document.getElementById('messageInputContainer');
@@ -174,11 +144,16 @@
 
         let currentUser = null;
         let currentChatId = null;
-        let currentOtherUserId = null;
+        let currentChatType = null; // 'public' или 'private'
         let messagesListener = null;
-        let chatListeners = {}; // для хранения слушателей на каждый чат
 
-        // ========== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ==========
+        // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
+        function clearErrors() {
+            loginError.textContent = '';
+            registerError.textContent = '';
+        }
+
+        // Переключение вкладок
         loginTab.addEventListener('click', () => {
             loginTab.classList.add('active');
             registerTab.classList.remove('active');
@@ -186,7 +161,6 @@
             registerForm.style.display = 'none';
             clearErrors();
         });
-
         registerTab.addEventListener('click', () => {
             registerTab.classList.add('active');
             loginTab.classList.remove('active');
@@ -195,17 +169,11 @@
             clearErrors();
         });
 
-        function clearErrors() {
-            loginError.textContent = '';
-            registerError.textContent = '';
-        }
-
-        // ========== РЕГИСТРАЦИЯ ==========
-        registerBtn.addEventListener('click', () => {
+        // ---------- РЕГИСТРАЦИЯ ----------
+        registerBtn.addEventListener('click', async () => {
             const name = registerName.value.trim();
             const email = registerEmail.value.trim();
             const password = registerPassword.value;
-
             if (!name || !email || !password) {
                 registerError.textContent = 'Заполните все поля';
                 return;
@@ -214,327 +182,249 @@
                 registerError.textContent = 'Пароль должен быть минимум 6 символов';
                 return;
             }
-
-            auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    return user.updateProfile({ displayName: name }).then(() => {
-                        return usersRef.child(user.uid).set({
-                            name: name,
-                            email: email,
-                            createdAt: firebase.database.ServerValue.TIMESTAMP
-                        });
-                    });
-                })
-                .catch((error) => {
-                    console.error('Ошибка регистрации:', error);
-                    if (error.code === 'auth/email-already-in-use') {
-                        registerError.textContent = 'Этот email уже зарегистрирован';
-                    } else {
-                        registerError.textContent = 'Ошибка: ' + error.message;
-                    }
-                });
+            try {
+                const cred = await auth.createUserWithEmailAndPassword(email, password);
+                await cred.user.updateProfile({ displayName: name });
+                // Сохраняем пользователя в БД
+                await usersRef.child(cred.user.uid).set({ name, email });
+                // Добавляем пользователя в общий чат (если ещё не участник)
+                await addUserToPublicChat(cred.user.uid);
+            } catch (e) {
+                registerError.textContent = e.message;
+            }
         });
 
-        // ========== ВХОД ==========
+        // ---------- ВХОД ----------
         loginBtn.addEventListener('click', () => {
             const email = loginEmail.value.trim();
             const password = loginPassword.value;
-
             if (!email || !password) {
-                loginError.textContent = 'Заполните все поля';
+                loginError.textContent = 'Заполните поля';
                 return;
             }
-
             auth.signInWithEmailAndPassword(email, password)
-                .catch((error) => {
-                    console.error('Ошибка входа:', error);
-                    if (error.code === 'auth/wrong-password') {
-                        loginError.textContent = 'Неверный пароль';
-                    } else if (error.code === 'auth/user-not-found') {
-                        loginError.textContent = 'Пользователь не найден';
-                    } else {
-                        loginError.textContent = 'Ошибка: ' + error.message;
-                    }
-                });
+                .catch(e => loginError.textContent = e.message);
         });
 
-        // ========== ВЫХОД ==========
-        logoutBtn.addEventListener('click', () => {
-            auth.signOut();
-        });
+        // ---------- ВЫХОД ----------
+        logoutBtn.addEventListener('click', () => auth.signOut());
 
-        // ========== СЛЕДИМ ЗА СОСТОЯНИЕМ ПОЛЬЗОВАТЕЛЯ ==========
+        // ---------- СОСТОЯНИЕ ПОЛЬЗОВАТЕЛЯ ----------
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 currentUser = user;
                 authContainer.style.display = 'none';
                 chatContainer.style.display = 'block';
-                
-                loadAllUsers();
-                loadUserChats();
+                // Убедимся, что общий чат существует и пользователь в нём участник
+                await ensurePublicChatExists();
+                await addUserToPublicChat(user.uid);
+                // Загружаем список пользователей и чатов
+                loadUsers();
+                loadChats();
             } else {
-                // Очищаем слушатели чатов
-                for (let chatId in chatListeners) {
-                    chatListeners[chatId].off();
-                }
-                chatListeners = {};
-                
                 currentUser = null;
                 authContainer.style.display = 'block';
                 chatContainer.style.display = 'none';
-                
-                loginEmail.value = '';
-                loginPassword.value = '';
-                registerName.value = '';
-                registerEmail.value = '';
-                registerPassword.value = '';
+                // Очищаем поля
+                loginEmail.value = loginPassword.value = registerName.value = registerEmail.value = registerPassword.value = '';
                 clearErrors();
+                // Отписываемся от сообщений
+                if (messagesListener) {
+                    messagesRef.child(currentChatId).off('child_added', messagesListener);
+                    messagesListener = null;
+                }
+                currentChatId = null;
             }
         });
 
-        // ========== ЗАГРУЗКА ВСЕХ ПОЛЬЗОВАТЕЛЕЙ (кроме текущего) ==========
-        function loadAllUsers() {
-            if (!currentUser) return;
+        // ---------- УБЕДИТЬСЯ, ЧТО ОБЩИЙ ЧАТ СУЩЕСТВУЕТ ----------
+        async function ensurePublicChatExists() {
+            const publicChatSnap = await chatsRef.child(PUBLIC_CHAT_ID).once('value');
+            if (!publicChatSnap.exists()) {
+                await chatsRef.child(PUBLIC_CHAT_ID).set({
+                    type: 'public',
+                    name: 'Общий чат',
+                    participants: {}, // участники будут добавляться динамически
+                    lastMessage: '',
+                    lastMessageTime: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+        }
+
+        // ---------- ДОБАВИТЬ ПОЛЬЗОВАТЕЛЯ В ОБЩИЙ ЧАТ ----------
+        async function addUserToPublicChat(uid) {
+            // Добавляем ID общего чата в список чатов пользователя
+            await usersRef.child(uid).child('chats').child(PUBLIC_CHAT_ID).set(true);
+            // Добавляем пользователя в список участников общего чата (для проверки прав)
+            await chatsRef.child(PUBLIC_CHAT_ID).child('participants').child(uid).set(true);
+        }
+
+        // ---------- ЗАГРУЗКА ВСЕХ ПОЛЬЗОВАТЕЛЕЙ (КРОМЕ СЕБЯ) ----------
+        function loadUsers() {
             usersRef.on('value', (snapshot) => {
-                const usersObj = snapshot.val() || {};
+                const users = snapshot.val() || {};
                 let html = '';
-                for (const uid in usersObj) {
+                for (let uid in users) {
                     if (uid === currentUser.uid) continue;
-                    const user = usersObj[uid];
-                    html += `
-                        <div class="list-group-item list-group-item-action user-item" 
-                             data-user-id="${uid}" 
-                             data-user-name="${user.name || 'Пользователь'}"
-                             style="cursor: pointer;">
-                            <strong>${user.name || 'Без имени'}</strong><br>
-                            <small>${user.email}</small>
-                        </div>
-                    `;
+                    html += `<div class="list-group-item user-item" data-uid="${uid}" data-name="${users[uid].name}">
+                        <strong>${users[uid].name}</strong><br><small>${users[uid].email}</small>
+                    </div>`;
                 }
-                if (html === '') {
-                    usersListDiv.innerHTML = '<div class="text-muted text-center py-2">Нет других пользователей</div>';
-                } else {
-                    usersListDiv.innerHTML = html;
-                }
-                document.querySelectorAll('.user-item').forEach(item => {
-                    item.addEventListener('click', async () => {
-                        const userId = item.dataset.userId;
-                        const userName = item.dataset.userName;
-                        const chatId = await findOrCreatePrivateChat(currentUser.uid, userId);
-                        openChat(chatId, userId, userName);
+                usersListDiv.innerHTML = html || '<div class="text-muted">Нет других пользователей</div>';
+                document.querySelectorAll('.user-item').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const uid = el.dataset.uid;
+                        const name = el.dataset.name;
+                        createPrivateChat(uid, name);
                     });
                 });
             });
         }
 
-        // ========== ПОИСК ИЛИ СОЗДАНИЕ ПРИВАТНОГО ЧАТА ==========
-        async function findOrCreatePrivateChat(uid1, uid2) {
-            // Проверяем, есть ли уже общий чат через users/{uid1}/chats
-            const userChatsSnap = await usersRef.child(uid1).child('chats').once('value');
+        // ---------- СОЗДАНИЕ ПРИВАТНОГО ЧАТА ----------
+        async function createPrivateChat(otherUid, otherName) {
+            // Ищем существующий чат между этими двумя
+            const userChatsSnap = await usersRef.child(currentUser.uid).child('chats').once('value');
             const userChats = userChatsSnap.val() || {};
-            
+            let existingChatId = null;
             for (let chatId in userChats) {
+                if (chatId === PUBLIC_CHAT_ID) continue; // пропускаем общий чат
                 const chatSnap = await chatsRef.child(chatId).once('value');
-                const chatData = chatSnap.val();
-                if (chatData && chatData.participants && chatData.participants[uid2]) {
-                    return chatId; // чат уже есть
+                const chat = chatSnap.val();
+                if (chat && chat.type === 'private' && chat.participants && chat.participants[otherUid]) {
+                    existingChatId = chatId;
+                    break;
                 }
             }
-            
-            // Создаём новый чат
-            const newChatRef = chatsRef.push();
-            const chatId = newChatRef.key;
-            const timestamp = firebase.database.ServerValue.TIMESTAMP;
-            
-            const chatData = {
-                participants: { [uid1]: true, [uid2]: true },
-                type: 'private',
-                createdAt: timestamp,
-                lastMessage: '',
-                lastMessageTime: timestamp
-            };
-            
-            await newChatRef.set(chatData);
-            
-            // Добавляем ссылку на чат в профили обоих пользователей (просто true)
-            await usersRef.child(uid1).child('chats').child(chatId).set(true);
-            await usersRef.child(uid2).child('chats').child(chatId).set(true);
-            
-            return chatId;
-        }
-
-        // ========== ЗАГРУЗКА СПИСКА ЧАТОВ ПОЛЬЗОВАТЕЛЯ ==========
-        function loadUserChats() {
-            if (!currentUser) return;
-            
-            // Слушаем изменения в списке чатов пользователя (добавление/удаление)
-            usersRef.child(currentUser.uid).child('chats').on('value', (snapshot) => {
-                const chatIdsMap = snapshot.val() || {};
-                const chatIds = Object.keys(chatIdsMap);
-                
-                // Отписываемся от старых слушателей чатов
-                for (let chatId in chatListeners) {
-                    chatListeners[chatId].off();
-                }
-                chatListeners = {};
-                
-                if (chatIds.length === 0) {
-                    chatsList.innerHTML = '<div class="text-muted text-center py-3">У вас пока нет чатов. Нажмите на пользователя, чтобы начать диалог.</div>';
-                    return;
-                }
-                
-                // Для каждого чата устанавливаем слушатель на изменение данных в чате
-                chatIds.forEach(chatId => {
-                    const chatRef = chatsRef.child(chatId);
-                    const listener = chatRef.on('value', (chatSnap) => {
-                        // При любом изменении (новое сообщение) перерисовываем список
-                        renderChatsList();
-                    });
-                    chatListeners[chatId] = { off: () => chatRef.off('value', listener) };
-                });
-                
-                // Первичная отрисовка
-                renderChatsList();
-            });
-        }
-
-        // ========== ОТРИСОВКА СПИСКА ЧАТОВ ==========
-        async function renderChatsList() {
-            if (!currentUser) return;
-            
-            // Получаем актуальный список ID чатов
-            const snapshot = await usersRef.child(currentUser.uid).child('chats').once('value');
-            const chatIdsMap = snapshot.val() || {};
-            const chatIds = Object.keys(chatIdsMap);
-            
-            if (chatIds.length === 0) {
-                chatsList.innerHTML = '<div class="text-muted text-center py-3">У вас пока нет чатов. Нажмите на пользователя, чтобы начать диалог.</div>';
+            if (existingChatId) {
+                openChat(existingChatId, 'private', otherName);
                 return;
             }
-            
-            let html = '';
-            for (let chatId of chatIds) {
-                const chatSnap = await chatsRef.child(chatId).once('value');
-                const chatData = chatSnap.val();
-                if (!chatData) continue;
-                
-                const otherParticipantId = Object.keys(chatData.participants || {}).find(id => id !== currentUser.uid);
-                if (!otherParticipantId) continue;
-                
-                const userSnap = await usersRef.child(otherParticipantId).once('value');
-                const userData = userSnap.val();
-                
-                const lastMessage = chatData.lastMessage || 'Нет сообщений';
-                const isActive = chatId === currentChatId ? 'active' : '';
-                
-                html += `
-                    <div class="chat-item ${isActive}" data-chat-id="${chatId}" data-user-id="${otherParticipantId}" data-user-name="${userData?.name || 'Пользователь'}">
-                        <strong>${userData?.name || 'Пользователь'}</strong>
-                        <div class="small text-muted">${lastMessage.substring(0, 30)}${lastMessage.length > 30 ? '...' : ''}</div>
-                    </div>
-                `;
-            }
-            
-            chatsList.innerHTML = html;
-            
-            document.querySelectorAll('.chat-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const chatId = item.dataset.chatId;
-                    const userId = item.dataset.userId;
-                    const userName = item.dataset.userName;
-                    openChat(chatId, userId, userName);
+            // Создаём новый приватный чат
+            const newChatRef = chatsRef.push();
+            const chatId = newChatRef.key;
+            const chatData = {
+                type: 'private',
+                participants: { [currentUser.uid]: true, [otherUid]: true },
+                lastMessage: '',
+                lastMessageTime: firebase.database.ServerValue.TIMESTAMP
+            };
+            await newChatRef.set(chatData);
+            // Добавляем ID чата в список чатов обоих пользователей
+            await usersRef.child(currentUser.uid).child('chats').child(chatId).set(true);
+            await usersRef.child(otherUid).child('chats').child(chatId).set(true);
+            // Добавляем участников в сам чат (уже сделано выше)
+            openChat(chatId, 'private', otherName);
+        }
+
+        // ---------- ЗАГРУЗКА СПИСКА ЧАТОВ ----------
+        function loadChats() {
+            // Слушаем изменения в списке чатов пользователя
+            usersRef.child(currentUser.uid).child('chats').on('value', async (snapshot) => {
+                const chatIds = snapshot.val() || {};
+                let html = '';
+                for (let chatId in chatIds) {
+                    const chatSnap = await chatsRef.child(chatId).once('value');
+                    const chat = chatSnap.val();
+                    if (!chat) continue;
+                    let displayName = '';
+                    if (chatId === PUBLIC_CHAT_ID) {
+                        displayName = '🌟 Общий чат';
+                    } else {
+                        // Приватный чат – ищем собеседника
+                        const otherUid = Object.keys(chat.participants || {}).find(id => id !== currentUser.uid);
+                        if (otherUid) {
+                            const userSnap = await usersRef.child(otherUid).once('value');
+                            const user = userSnap.val();
+                            displayName = user ? user.name : 'Пользователь';
+                        } else {
+                            displayName = 'Чат';
+                        }
+                    }
+                    const lastMsg = chat.lastMessage || 'Нет сообщений';
+                    const activeClass = chatId === currentChatId ? 'active' : '';
+                    html += `<div class="chat-item ${activeClass}" data-chatid="${chatId}" data-type="${chat.type || 'private'}" data-name="${displayName}">
+                        <strong>${displayName}</strong><br><small>${lastMsg.substring(0,30)}</small>
+                    </div>`;
+                }
+                chatsListDiv.innerHTML = html || '<div class="text-muted">У вас пока нет чатов</div>';
+                document.querySelectorAll('.chat-item').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const chatId = el.dataset.chatid;
+                        const type = el.dataset.type;
+                        const name = el.dataset.name;
+                        openChat(chatId, type, name);
+                    });
                 });
             });
         }
 
-        // ========== ОТКРЫТИЕ ЧАТА ==========
-        function openChat(chatId, otherUserId, otherUserName) {
+        // ---------- ОТКРЫТИЕ ЧАТА ----------
+        function openChat(chatId, type, displayName) {
             currentChatId = chatId;
-            currentOtherUserId = otherUserId;
-            
-            currentChatHeader.innerHTML = `<h5 class="mb-0">Чат с ${otherUserName}</h5>`;
+            currentChatType = type;
+            currentChatHeader.innerHTML = `<h5 class="mb-0">${displayName}</h5>`;
             messageInputContainer.style.display = 'block';
-            messagesArea.innerHTML = '<div class="text-muted text-center py-5">Загрузка сообщений...</div>';
-            
+            messagesArea.innerHTML = ''; // очищаем, сообщения подгрузятся через слушатель
+
             if (messagesListener) {
                 messagesRef.child(currentChatId).off('child_added', messagesListener);
             }
-            
-            messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snapshot) => {
-                const message = snapshot.val();
-                displayMessage(message);
+            messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snap) => {
+                const msg = snap.val();
+                displayMessage(msg);
             });
-            
-            // Подсвечиваем активный чат в списке
-            document.querySelectorAll('.chat-item').forEach(item => {
-                if (item.dataset.chatId === chatId) {
-                    item.classList.add('active');
+
+            // Подсветка активного чата в списке
+            document.querySelectorAll('.chat-item').forEach(el => {
+                if (el.dataset.chatid === chatId) {
+                    el.classList.add('active');
                 } else {
-                    item.classList.remove('active');
+                    el.classList.remove('active');
                 }
             });
         }
 
-        // ========== ОТОБРАЖЕНИЕ СООБЩЕНИЯ ==========
-        function displayMessage(message) {
+        // ---------- ОТОБРАЖЕНИЕ СООБЩЕНИЯ ----------
+        function displayMessage(msg) {
             if (!messagesArea) return;
-            
-            if (messagesArea.innerHTML.includes('Загрузка сообщений') || 
-                messagesArea.innerHTML.includes('Выберите чат')) {
+            // Убираем заглушку, если она была
+            if (messagesArea.innerHTML.includes('Выберите чат') || messagesArea.innerHTML.includes('Загрузка')) {
                 messagesArea.innerHTML = '';
             }
-            
-            const isMyMessage = message.senderId === currentUser.uid;
-            
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message', isMyMessage ? 'my-message' : 'other-message');
-            
-            const time = new Date(message.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            
-            messageElement.innerHTML = `
-                <div class="message-info">${message.senderName || 'Пользователь'} · ${time}</div>
-                <div class="message-bubble">${message.text}</div>
+            const isMy = msg.senderId === currentUser.uid;
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${isMy ? 'my-message' : 'other-message'}`;
+            const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            msgDiv.innerHTML = `
+                <div class="message-info">${msg.senderName || 'Пользователь'} · ${time}</div>
+                <div class="message-bubble">${msg.text}</div>
             `;
-            
-            messagesArea.appendChild(messageElement);
+            messagesArea.appendChild(msgDiv);
             messagesArea.scrollTop = messagesArea.scrollHeight;
         }
 
-        // ========== ОТПРАВКА СООБЩЕНИЯ ==========
-        async function sendMessage() {
-            if (!currentUser || !currentChatId || !currentOtherUserId) {
-                alert('Чат не выбран');
-                return;
-            }
-            
+        // ---------- ОТПРАВКА СООБЩЕНИЯ ----------
+        sendButton.addEventListener('click', async () => {
             const text = messageInput.value.trim();
-            if (text === '') return;
-            
-            const timestamp = firebase.database.ServerValue.TIMESTAMP;
-            
-            const messageData = {
+            if (!text || !currentChatId) return;
+            const msg = {
                 senderId: currentUser.uid,
                 senderName: currentUser.displayName || currentUser.email,
                 text: text,
-                timestamp: timestamp
+                timestamp: firebase.database.ServerValue.TIMESTAMP
             };
-            
-            // Сохраняем сообщение
-            await messagesRef.child(currentChatId).push(messageData);
-            
-            // Обновляем lastMessage в самом чате
+            await messagesRef.child(currentChatId).push(msg);
+            // Обновляем lastMessage в информации о чате
             await chatsRef.child(currentChatId).update({
                 lastMessage: text,
-                lastMessageTime: timestamp
+                lastMessageTime: msg.timestamp
             });
-            
             messageInput.value = '';
-        }
+        });
 
-        sendButton.addEventListener('click', sendMessage);
         messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
+            if (e.key === 'Enter') sendButton.click();
         });
     </script>
 </body>
