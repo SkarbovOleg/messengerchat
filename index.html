@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Чат — редактирование профиля</title>
+    <title>Чат — поиск пользователей</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -541,6 +541,9 @@
             // Хранилище всех пользователей для поиска
             let allUsers = [];
 
+            // Время последнего открытия чата (для уведомлений)
+            let lastOpenedChat = {};
+
             // Звук уведомления (НЕ МЕНЯЕМ!)
             const notificationSound = new Audio('https://zvukogram.com/index.php?r=site/download&id=84076&type=mp3');
 
@@ -610,7 +613,6 @@
             // Редактирование профиля
             editProfileBtn.addEventListener('click', () => {
                 profileModal.style.display = 'none';
-                // Заполняем поля текущими данными
                 usersRef.child(currentUser.uid).once('value', (snap) => {
                     const user = snap.val() || {};
                     editName.value = user.name || '';
@@ -635,10 +637,9 @@
                 try {
                     const updates = {
                         name: newName,
-                        nickname: newNickname || null // если пусто, удаляем поле
+                        nickname: newNickname || null
                     };
                     await usersRef.child(currentUser.uid).update(updates);
-                    // Обновляем displayName в Firebase Auth (для единообразия)
                     await currentUser.updateProfile({ displayName: newName });
                     editProfileModal.style.display = 'none';
                     overlay.style.display = 'none';
@@ -863,7 +864,7 @@
                     await cred.user.updateProfile({ displayName: name });
                     await usersRef.child(cred.user.uid).set({
                         name: name,
-                        nickname: '', // можно оставить пустым
+                        nickname: '',
                         email: email,
                         avatar: 'fas fa-user',
                         online: false,
@@ -932,7 +933,6 @@
 
                     await ensurePublicChatExists();
                     await addUserToPublicChat(user.uid);
-                    // Загружаем всех пользователей для поиска
                     loadAllUsersForSearch();
                     loadChats();
                 } else {
@@ -946,6 +946,7 @@
                     }
                     currentUser = null;
                     currentOtherUserId = null;
+                    lastOpenedChat = {}; // очищаем историю открытых чатов
                     if (authContainer) authContainer.style.display = 'block';
                     if (chatContainer) chatContainer.style.display = 'none';
                     if (loginEmail) loginEmail.value = '';
@@ -1158,6 +1159,7 @@
                 currentChatId = chatId;
                 currentChatType = type;
                 currentOtherUserId = otherUid || null;
+                lastOpenedChat[chatId] = Date.now(); // запоминаем время открытия чата
 
                 if (chatHeaderName) {
                     chatHeaderName.textContent = displayName;
@@ -1199,7 +1201,8 @@
                 messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snap) => {
                     const msg = snap.val();
                     displayMessage(msg);
-                    if (msg.senderId !== currentUser.uid) {
+                    // Уведомляем только о сообщениях, полученных после открытия чата
+                    if (msg.senderId !== currentUser.uid && msg.timestamp > (lastOpenedChat[chatId] - 2000)) {
                         notificationSound.play().catch(e => console.log('Звук не воспроизвёлся', e));
                         if (Notification.permission === 'granted') {
                             new Notification('Новое сообщение в чате', {
@@ -1322,7 +1325,6 @@
                     lastMessageTime: msg.timestamp
                 });
                 if (messageInput) messageInput.value = '';
-                // Убираем индикатор печатания
                 if (currentChatId) {
                     db.ref(`chats/${currentChatId}/typing/${currentUser.uid}`).remove();
                 }
@@ -1334,7 +1336,6 @@
                 });
             }
 
-            // Глобальная функция для вызова из onclick
             window.showProfile = showProfile;
         })();
     </script>
