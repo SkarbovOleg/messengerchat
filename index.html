@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Чат — поиск пользователей</title>
+    <title>Чат — редактирование профиля</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -77,7 +77,7 @@
         }
 
         /* Модальные окна */
-        .profile-modal, .password-modal, .reset-modal, .confirm-modal {
+        .profile-modal, .password-modal, .reset-modal, .confirm-modal, .edit-profile-modal {
             display: none;
             position: fixed;
             top: 50%;
@@ -103,7 +103,7 @@
             margin: 5px 0;
             color: #65676b;
         }
-        .password-modal input, .reset-modal input {
+        .password-modal input, .reset-modal input, .edit-profile-modal input {
             width: 100%;
             padding: 8px;
             margin: 8px 0;
@@ -183,6 +183,7 @@
         body.dark-theme .password-modal,
         body.dark-theme .reset-modal,
         body.dark-theme .confirm-modal,
+        body.dark-theme .edit-profile-modal,
         body.dark-theme .search-results {
             background: #2d2d2d;
             border-color: #444;
@@ -267,13 +268,25 @@
     <div id="profileModal" class="profile-modal">
         <i id="profileAvatar" class="fas fa-user"></i>
         <h3 id="profileName">Имя</h3>
+        <p id="profileNickname">Никнейм</p>
         <p id="profileEmail">email</p>
         <p id="profileStatus">статус</p>
         <p id="profileRegistered">зарегистрирован</p>
         <button class="btn btn-primary mt-3" id="profileMessageBtn">Написать сообщение</button>
+        <button class="btn btn-secondary mt-2" id="editProfileBtn">Редактировать профиль</button>
         <button class="btn btn-secondary mt-2" id="changePasswordBtn">Сменить пароль</button>
         <button class="btn btn-warning mt-2" id="logoutAllDevicesBtn">Выйти из всех устройств</button>
         <button class="btn btn-secondary mt-2" id="closeProfileBtn">Закрыть</button>
+    </div>
+
+    <!-- Модальное окно редактирования профиля -->
+    <div id="editProfileModal" class="edit-profile-modal">
+        <h4>Редактирование профиля</h4>
+        <input type="text" id="editName" placeholder="Имя">
+        <input type="text" id="editNickname" placeholder="Никнейм (необязательно)">
+        <div id="editProfileError" class="error-message"></div>
+        <button class="btn btn-primary mt-3" id="saveProfileBtn">Сохранить</button>
+        <button class="btn btn-secondary mt-2" id="closeEditProfileBtn">Отмена</button>
     </div>
 
     <!-- Модальное окно смены пароля -->
@@ -460,11 +473,13 @@
             const profileModal = $('profileModal');
             const profileAvatar = $('profileAvatar');
             const profileName = $('profileName');
+            const profileNickname = $('profileNickname');
             const profileEmail = $('profileEmail');
             const profileStatus = $('profileStatus');
             const profileRegistered = $('profileRegistered');
             const profileMessageBtn = $('profileMessageBtn');
             const closeProfileBtn = $('closeProfileBtn');
+            const editProfileBtn = $('editProfileBtn');
             const changePasswordBtn = $('changePasswordBtn');
             const passwordModal = $('passwordModal');
             const currentPassword = $('currentPassword');
@@ -483,6 +498,12 @@
             const confirmModal = $('confirmModal');
             const confirmLogoutAllBtn = $('confirmLogoutAllBtn');
             const closeConfirmBtn = $('closeConfirmBtn');
+            const editProfileModal = $('editProfileModal');
+            const editName = $('editName');
+            const editNickname = $('editNickname');
+            const editProfileError = $('editProfileError');
+            const saveProfileBtn = $('saveProfileBtn');
+            const closeEditProfileBtn = $('closeEditProfileBtn');
 
             // Элементы поиска
             const searchInput = $('searchInput');
@@ -550,6 +571,7 @@
                     if (!user) return;
                     profileAvatar.className = user.avatar || 'fas fa-user';
                     profileName.textContent = user.name || 'Без имени';
+                    profileNickname.textContent = user.nickname ? `@${user.nickname}` : '';
                     profileEmail.textContent = user.email || '';
                     const status = user.online ? 'Онлайн' : `Был(а) ${formatLastSeen(user.lastSeen)}`;
                     profileStatus.textContent = status;
@@ -561,16 +583,18 @@
                     }
                     if (uid === currentUser.uid) {
                         profileMessageBtn.style.display = 'none';
+                        editProfileBtn.style.display = 'block';
                         changePasswordBtn.style.display = 'block';
                         logoutAllDevicesBtn.style.display = 'block';
                     } else {
                         profileMessageBtn.style.display = 'block';
+                        editProfileBtn.style.display = 'none';
                         changePasswordBtn.style.display = 'none';
                         logoutAllDevicesBtn.style.display = 'none';
                         profileMessageBtn.onclick = () => {
                             profileModal.style.display = 'none';
                             overlay.style.display = 'none';
-                            createPrivateChat(uid, user.name);
+                            createPrivateChat(uid, user.name, user.nickname);
                         };
                     }
                     profileModal.style.display = 'block';
@@ -581,6 +605,48 @@
             closeProfileBtn.addEventListener('click', () => {
                 profileModal.style.display = 'none';
                 overlay.style.display = 'none';
+            });
+
+            // Редактирование профиля
+            editProfileBtn.addEventListener('click', () => {
+                profileModal.style.display = 'none';
+                // Заполняем поля текущими данными
+                usersRef.child(currentUser.uid).once('value', (snap) => {
+                    const user = snap.val() || {};
+                    editName.value = user.name || '';
+                    editNickname.value = user.nickname || '';
+                });
+                editProfileModal.style.display = 'block';
+                overlay.style.display = 'block';
+            });
+
+            closeEditProfileBtn.addEventListener('click', () => {
+                editProfileModal.style.display = 'none';
+                overlay.style.display = 'none';
+            });
+
+            saveProfileBtn.addEventListener('click', async () => {
+                const newName = editName.value.trim();
+                const newNickname = editNickname.value.trim();
+                if (!newName) {
+                    editProfileError.textContent = 'Имя не может быть пустым';
+                    return;
+                }
+                try {
+                    const updates = {
+                        name: newName,
+                        nickname: newNickname || null // если пусто, удаляем поле
+                    };
+                    await usersRef.child(currentUser.uid).update(updates);
+                    // Обновляем displayName в Firebase Auth (для единообразия)
+                    await currentUser.updateProfile({ displayName: newName });
+                    editProfileModal.style.display = 'none';
+                    overlay.style.display = 'none';
+                    editProfileError.textContent = '';
+                } catch (error) {
+                    console.error(error);
+                    editProfileError.textContent = error.message;
+                }
             });
 
             // Смена пароля
@@ -753,6 +819,7 @@
                     passwordModal.style.display = 'none';
                     resetModal.style.display = 'none';
                     confirmModal.style.display = 'none';
+                    editProfileModal.style.display = 'none';
                     searchResultsDiv.classList.remove('show');
                     overlay.style.display = 'none';
                 });
@@ -796,6 +863,7 @@
                     await cred.user.updateProfile({ displayName: name });
                     await usersRef.child(cred.user.uid).set({
                         name: name,
+                        nickname: '', // можно оставить пустым
                         email: email,
                         avatar: 'fas fa-user',
                         online: false,
@@ -905,6 +973,7 @@
                         allUsers.push({
                             uid: uid,
                             name: usersObj[uid].name,
+                            nickname: usersObj[uid].nickname,
                             email: usersObj[uid].email,
                             avatar: usersObj[uid].avatar || 'fas fa-user'
                         });
@@ -924,7 +993,8 @@
                 searchTimeout = setTimeout(() => {
                     const lowerQuery = query.toLowerCase();
                     const results = allUsers.filter(user => 
-                        user.name.toLowerCase().includes(lowerQuery)
+                        user.name.toLowerCase().includes(lowerQuery) || 
+                        (user.nickname && user.nickname.toLowerCase().includes(lowerQuery))
                     );
                     displaySearchResults(results);
                 }, 300);
@@ -936,10 +1006,11 @@
                 } else {
                     let html = '';
                     results.forEach(user => {
+                        const displayName = user.nickname ? `${user.name} (@${user.nickname})` : user.name;
                         html += `
-                            <div class="search-result-item" data-uid="${user.uid}" data-name="${user.name}">
+                            <div class="search-result-item" data-uid="${user.uid}" data-name="${user.name}" data-nickname="${user.nickname || ''}">
                                 <i class="${user.avatar}" style="width: 30px; font-size: 1.2rem;"></i>
-                                <span>${user.name}</span>
+                                <span>${displayName}</span>
                             </div>
                         `;
                     });
@@ -954,7 +1025,8 @@
                 if (!item) return;
                 const uid = item.dataset.uid;
                 const name = item.dataset.name;
-                createPrivateChat(uid, name);
+                const nickname = item.dataset.nickname;
+                createPrivateChat(uid, name, nickname);
                 searchInput.value = '';
                 searchResultsDiv.classList.remove('show');
             });
@@ -984,7 +1056,7 @@
                 await chatsRef.child(PUBLIC_CHAT_ID).child('participants').child(uid).set(true);
             }
 
-            async function createPrivateChat(otherUid, otherName) {
+            async function createPrivateChat(otherUid, otherName, otherNickname) {
                 const chatId = getPrivateChatId(currentUser.uid, otherUid);
                 const chatSnap = await chatsRef.child(chatId).once('value');
                 if (!chatSnap.exists()) {
@@ -999,7 +1071,8 @@
                 } else {
                     await usersRef.child(currentUser.uid).child('chats').child(chatId).set(true);
                 }
-                openChat(chatId, 'private', otherName, otherUid);
+                const displayName = otherNickname ? `${otherName} (@${otherNickname})` : otherName;
+                openChat(chatId, 'private', displayName, otherUid);
             }
 
             function loadChats() {
@@ -1041,7 +1114,7 @@
                         if (otherUid) {
                             const userSnap = await usersRef.child(otherUid).once('value');
                             const user = userSnap.val();
-                            displayName = user ? user.name : 'Пользователь';
+                            displayName = user ? (user.nickname ? `${user.name} (@${user.nickname})` : user.name) : 'Пользователь';
                             avatarIcon = user ? user.avatar || 'fas fa-user' : 'fas fa-user';
                         } else {
                             displayName = 'Чат';
@@ -1171,6 +1244,17 @@
                 } else {
                     avatarIcon = currentUserAvatar ? currentUserAvatar.className : 'fas fa-user';
                 }
+
+                // Получаем имя и никнейм отправителя для отображения
+                let senderDisplay = msg.senderName || 'Пользователь';
+                if (!isMy) {
+                    const userSnap = await usersRef.child(msg.senderId).once('value');
+                    const user = userSnap.val();
+                    if (user) {
+                        senderDisplay = user.nickname ? `${user.name} (@${user.nickname})` : user.name;
+                    }
+                }
+
                 const msgDiv = document.createElement('div');
                 msgDiv.className = `message ${isMy ? 'my-message' : 'other-message'}`;
                 const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
@@ -1182,7 +1266,7 @@
                 msgDiv.innerHTML = `
                     <div class="message-info" onclick="showProfile('${msg.senderId}')">
                         <i class="${avatarIcon}" style="font-size: 1rem; width: 20px;"></i>
-                        <span>${msg.senderName || 'Пользователь'} · ${time}</span>
+                        <span>${senderDisplay} · ${time}</span>
                     </div>
                     <div class="message-bubble">${msg.text}</div>
                     <button class="reaction-btn" data-message-id="${msg.id}" data-reacted="${userReacted}">
