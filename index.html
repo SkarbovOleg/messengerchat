@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Чат — поиск пользователей</title>
+    <title>Чат — загрузка аватарок</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -38,12 +38,19 @@
         .sticker { font-size: 1.8rem; cursor: pointer; text-align: center; padding: 5px; border-radius: 5px; }
         .sticker:hover { background: #e4e6eb; }
         .avatar-selector { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.3); z-index: 2000; max-width: 400px; width: 90%; }
-        .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+        .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px; }
         .avatar-option { font-size: 2.5rem; cursor: pointer; text-align: center; padding: 5px; border-radius: 8px; }
         .avatar-option:hover { background: #e7f3ff; }
+        .avatar-upload { margin-top: 10px; }
+        .avatar-preview { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 10px auto; display: none; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; }
         .current-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px; border-radius: 8px; margin-bottom: 15px; }
         .current-user:hover { background: #e4e6eb; }
+        .current-user i, .current-user img { width: 2rem; height: 2rem; border-radius: 50%; object-fit: cover; }
+        .user-item i, .user-item img, .chat-item i, .chat-item img, .message-info i, .message-info img {
+            width: 30px; height: 30px; border-radius: 50%; object-fit: cover; font-size: 1.5rem; text-align: center; line-height: 30px;
+        }
+        .profile-modal i, .profile-modal img { width: 4rem; height: 4rem; border-radius: 50%; object-fit: cover; font-size: 4rem; }
 
         /* Индикатор онлайн */
         .online-indicator {
@@ -92,8 +99,12 @@
             width: 90%;
             text-align: center;
         }
-        .profile-modal i {
+        .profile-modal i, .profile-modal img {
             font-size: 4rem;
+            width: 4rem;
+            height: 4rem;
+            border-radius: 50%;
+            object-fit: cover;
             margin-bottom: 10px;
         }
         .profile-modal h3 {
@@ -257,16 +268,24 @@
 <body>
     <div id="overlay" class="overlay"></div>
 
-    <!-- Модальное окно выбора аватарки -->
+    <!-- Модальное окно выбора аватарки (теперь с загрузкой) -->
     <div id="avatarSelector" class="avatar-selector">
         <h5>Выберите аватарку</h5>
         <div class="avatar-grid" id="avatarGrid"></div>
+        <div class="avatar-upload">
+            <label for="avatarUpload" class="btn btn-outline-primary btn-sm">Загрузить фото</label>
+            <input type="file" id="avatarUpload" accept="image/*" style="display:none;">
+            <div class="mt-2">
+                <img id="avatarPreview" class="avatar-preview" src="#" alt="Предпросмотр">
+            </div>
+            <button id="uploadAvatarBtn" class="btn btn-success btn-sm mt-2" style="display:none;">Сохранить фото</button>
+        </div>
         <button class="btn btn-secondary btn-sm mt-3 w-100" id="closeAvatarBtn">Закрыть</button>
     </div>
 
     <!-- Модальное окно профиля -->
     <div id="profileModal" class="profile-modal">
-        <i id="profileAvatar" class="fas fa-user"></i>
+        <div id="profileAvatarContainer"></div>
         <h3 id="profileName">Имя</h3>
         <p id="profileNickname">Никнейм</p>
         <p id="profileEmail">email</p>
@@ -347,7 +366,7 @@
             <div class="col-md-4 sidebar">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="current-user" id="currentUserBlock" style="margin-bottom:0;">
-                        <i id="currentUserAvatar" class="fas fa-user" style="font-size: 1.8rem;"></i>
+                        <div id="currentUserAvatarContainer"></div>
                         <span id="currentUserName"></span>
                         <span id="currentUserStatus" class="last-seen"></span>
                     </div>
@@ -396,6 +415,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
 
     <script>
         (function() {
@@ -412,6 +432,7 @@
             firebase.initializeApp(firebaseConfig);
             const auth = firebase.auth();
             const db = firebase.database();
+            const storage = firebase.storage();
             const usersRef = db.ref('users');
             const chatsRef = db.ref('chats');
             const messagesRef = db.ref('messages');
@@ -464,14 +485,14 @@
             const avatarGrid = $('avatarGrid');
             const closeAvatarBtn = $('closeAvatarBtn');
             const currentUserBlock = $('currentUserBlock');
-            const currentUserAvatar = $('currentUserAvatar');
+            const currentUserAvatarContainer = $('currentUserAvatarContainer');
             const currentUserName = $('currentUserName');
             const currentUserStatus = $('currentUserStatus');
             const currentChatStatus = $('currentChatStatus');
             const typingIndicator = $('typingIndicator');
             const themeToggle = $('themeToggle');
             const profileModal = $('profileModal');
-            const profileAvatar = $('profileAvatar');
+            const profileAvatarContainer = $('profileAvatarContainer');
             const profileName = $('profileName');
             const profileNickname = $('profileNickname');
             const profileEmail = $('profileEmail');
@@ -504,6 +525,11 @@
             const editProfileError = $('editProfileError');
             const saveProfileBtn = $('saveProfileBtn');
             const closeEditProfileBtn = $('closeEditProfileBtn');
+
+            // Элементы загрузки аватарок
+            const avatarUpload = $('avatarUpload');
+            const avatarPreview = $('avatarPreview');
+            const uploadAvatarBtn = $('uploadAvatarBtn');
 
             // Элементы поиска
             const searchInput = $('searchInput');
@@ -547,6 +573,23 @@
             // Звук уведомления (НЕ МЕНЯЕМ!)
             const notificationSound = new Audio('https://zvukogram.com/index.php?r=site/download&id=84076&type=mp3');
 
+            // Вспомогательная функция для отображения аватарки (иконка или img)
+            function renderAvatar(container, avatar, sizeClass = '') {
+                if (!container) return;
+                container.innerHTML = '';
+                if (avatar && avatar.startsWith('http')) {
+                    const img = document.createElement('img');
+                    img.src = avatar;
+                    img.className = sizeClass;
+                    img.alt = 'avatar';
+                    container.appendChild(img);
+                } else {
+                    const i = document.createElement('i');
+                    i.className = avatar || 'fas fa-user';
+                    container.appendChild(i);
+                }
+            }
+
             function safeAddListener(element, event, handler) {
                 if (element) element.addEventListener(event, handler);
                 else console.warn(`Element not found: ${event}`);
@@ -572,7 +615,7 @@
                 usersRef.child(uid).once('value', (snap) => {
                     const user = snap.val();
                     if (!user) return;
-                    profileAvatar.className = user.avatar || 'fas fa-user';
+                    renderAvatar(profileAvatarContainer, user.avatar, '');
                     profileName.textContent = user.name || 'Без имени';
                     profileNickname.textContent = user.nickname ? `@${user.nickname}` : '';
                     profileEmail.textContent = user.email || '';
@@ -783,7 +826,7 @@
                 }
             });
 
-            // Аватарки
+            // Аватарки: сетка иконок
             if (avatarGrid) {
                 avatars.forEach(iconClass => {
                     const div = document.createElement('div');
@@ -793,7 +836,10 @@
                     div.addEventListener('click', async () => {
                         if (currentUser && currentUser.uid) {
                             await usersRef.child(currentUser.uid).update({ avatar: iconClass });
-                            if (currentUserAvatar) currentUserAvatar.className = iconClass;
+                            // обновить отображение текущего пользователя
+                            if (currentUserAvatarContainer) {
+                                renderAvatar(currentUserAvatarContainer, iconClass, '');
+                            }
                             if (avatarSelector) avatarSelector.style.display = 'none';
                             if (overlay) overlay.style.display = 'none';
                         }
@@ -801,18 +847,66 @@
                     avatarGrid.appendChild(div);
                 });
             }
+
+            // Загрузка фото
+            let selectedFile = null;
+            avatarUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    selectedFile = file;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        avatarPreview.src = e.target.result;
+                        avatarPreview.style.display = 'block';
+                        uploadAvatarBtn.style.display = 'inline-block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            uploadAvatarBtn.addEventListener('click', async () => {
+                if (!selectedFile || !currentUser) return;
+                const userId = currentUser.uid;
+                const fileRef = storage.ref(`avatars/${userId}/${Date.now()}_${selectedFile.name}`);
+                try {
+                    const snapshot = await fileRef.put(selectedFile);
+                    const downloadURL = await snapshot.ref.getDownloadURL();
+                    await usersRef.child(userId).update({ avatar: downloadURL });
+                    // обновить текущий аватар
+                    if (currentUserAvatarContainer) {
+                        renderAvatar(currentUserAvatarContainer, downloadURL, '');
+                    }
+                    // очистить предпросмотр и скрыть кнопку
+                    avatarPreview.style.display = 'none';
+                    uploadAvatarBtn.style.display = 'none';
+                    selectedFile = null;
+                    avatarUpload.value = '';
+                    if (avatarSelector) avatarSelector.style.display = 'none';
+                    if (overlay) overlay.style.display = 'none';
+                } catch (error) {
+                    console.error('Ошибка загрузки:', error);
+                    alert('Ошибка загрузки фото');
+                }
+            });
+
             if (currentUserBlock) {
                 currentUserBlock.addEventListener('click', () => {
                     if (avatarSelector) avatarSelector.style.display = 'block';
                     if (overlay) overlay.style.display = 'block';
                 });
             }
+
             if (closeAvatarBtn) {
                 closeAvatarBtn.addEventListener('click', () => {
-                    if (avatarSelector) avatarSelector.style.display = 'none';
-                    if (overlay) overlay.style.display = 'none';
+                    avatarSelector.style.display = 'none';
+                    overlay.style.display = 'none';
+                    avatarPreview.style.display = 'none';
+                    uploadAvatarBtn.style.display = 'none';
+                    selectedFile = null;
+                    avatarUpload.value = '';
                 });
             }
+
             if (overlay) {
                 overlay.addEventListener('click', () => {
                     avatarSelector.style.display = 'none';
@@ -823,6 +917,10 @@
                     editProfileModal.style.display = 'none';
                     searchResultsDiv.classList.remove('show');
                     overlay.style.display = 'none';
+                    avatarPreview.style.display = 'none';
+                    uploadAvatarBtn.style.display = 'none';
+                    selectedFile = null;
+                    avatarUpload.value = '';
                 });
             }
 
@@ -928,7 +1026,9 @@
                     if (currentUserName) currentUserName.textContent = user.displayName || user.email;
                     const userSnap = await usersRef.child(user.uid).once('value');
                     const userData = userSnap.val() || {};
-                    if (currentUserAvatar) currentUserAvatar.className = userData.avatar || 'fas fa-user';
+                    if (currentUserAvatarContainer) {
+                        renderAvatar(currentUserAvatarContainer, userData.avatar, '');
+                    }
                     if (currentUserStatus) currentUserStatus.innerHTML = '<span class="online-indicator"></span> онлайн';
 
                     await ensurePublicChatExists();
@@ -946,7 +1046,7 @@
                     }
                     currentUser = null;
                     currentOtherUserId = null;
-                    lastOpenedChat = {}; // очищаем историю открытых чатов
+                    lastOpenedChat = {};
                     if (authContainer) authContainer.style.display = 'block';
                     if (chatContainer) chatContainer.style.display = 'none';
                     if (loginEmail) loginEmail.value = '';
@@ -1008,9 +1108,12 @@
                     let html = '';
                     results.forEach(user => {
                         const displayName = user.nickname ? `${user.name} (@${user.nickname})` : user.name;
+                        const avatarHtml = user.avatar.startsWith('http') ? 
+                            `<img src="${user.avatar}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : 
+                            `<i class="${user.avatar}" style="width:30px;"></i>`;
                         html += `
                             <div class="search-result-item" data-uid="${user.uid}" data-name="${user.name}" data-nickname="${user.nickname || ''}">
-                                <i class="${user.avatar}" style="width: 30px; font-size: 1.2rem;"></i>
+                                ${avatarHtml}
                                 <span>${displayName}</span>
                             </div>
                         `;
@@ -1135,8 +1238,12 @@
                         }
                     }
 
+                    const avatarHtml = avatarIcon.startsWith('http') ? 
+                        `<img src="${avatarIcon}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : 
+                        `<i class="${avatarIcon}" style="width:30px;"></i>`;
+
                     html += `<div class="chat-item ${activeClass}" data-chatid="${id}" data-type="${chat.type || 'private'}" data-name="${displayName}" data-otheruid="${otherUid || ''}">
-                        <i class="${avatarIcon}" style="font-size: 1.5rem; width: 30px;"></i>
+                        ${avatarHtml}
                         <div>
                             <strong>${displayName}</strong> ${statusHtml}
                             <br><small>${lastMsg.substring(0,30)}</small>
@@ -1159,7 +1266,7 @@
                 currentChatId = chatId;
                 currentChatType = type;
                 currentOtherUserId = otherUid || null;
-                lastOpenedChat[chatId] = Date.now(); // запоминаем время открытия чата
+                lastOpenedChat[chatId] = Date.now();
 
                 if (chatHeaderName) {
                     chatHeaderName.textContent = displayName;
@@ -1201,7 +1308,6 @@
                 messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snap) => {
                     const msg = snap.val();
                     displayMessage(msg);
-                    // Уведомляем только о сообщениях, полученных после открытия чата
                     if (msg.senderId !== currentUser.uid && msg.timestamp > (lastOpenedChat[chatId] - 2000)) {
                         notificationSound.play().catch(e => console.log('Звук не воспроизвёлся', e));
                         if (Notification.permission === 'granted') {
@@ -1239,13 +1345,17 @@
                     messagesArea.innerHTML = '';
                 }
                 const isMy = msg.senderId === currentUser.uid;
-                let avatarIcon = 'fas fa-user';
+
+                // Получаем аватар отправителя
+                let avatar = 'fas fa-user';
                 if (!isMy) {
                     const userSnap = await usersRef.child(msg.senderId).once('value');
                     const userData = userSnap.val();
-                    avatarIcon = userData?.avatar || 'fas fa-user';
+                    avatar = userData?.avatar || 'fas fa-user';
                 } else {
-                    avatarIcon = currentUserAvatar ? currentUserAvatar.className : 'fas fa-user';
+                    const userSnap = await usersRef.child(currentUser.uid).once('value');
+                    const userData = userSnap.val() || {};
+                    avatar = userData.avatar || 'fas fa-user';
                 }
 
                 // Получаем имя и никнейм отправителя для отображения
@@ -1266,9 +1376,13 @@
                 const count = Object.keys(reactions).length;
                 const userReacted = reactions[currentUser.uid] ? true : false;
 
+                const avatarHtml = avatar.startsWith('http') ? 
+                    `<img src="${avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">` : 
+                    `<i class="${avatar}" style="font-size:1rem; width:20px;"></i>`;
+
                 msgDiv.innerHTML = `
                     <div class="message-info" onclick="showProfile('${msg.senderId}')">
-                        <i class="${avatarIcon}" style="font-size: 1rem; width: 20px;"></i>
+                        ${avatarHtml}
                         <span>${senderDisplay} · ${time}</span>
                     </div>
                     <div class="message-bubble">${msg.text}</div>
