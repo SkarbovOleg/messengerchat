@@ -136,12 +136,10 @@
             appId: "1:399768373584:web:f2b42157ac87c1c69d4455"
         };
 
-        // Инициализация Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const database = firebase.database();
         
-        // Ссылки на узлы базы данных
         const usersRef = database.ref('users');
         const chatsRef = database.ref('chats');
         const messagesRef = database.ref('messages');
@@ -151,7 +149,6 @@
         const chatContainer = document.getElementById('chatContainer');
         const logoutBtn = document.getElementById('logoutBtn');
         
-        // Элементы аутентификации
         const loginTab = document.getElementById('loginTab');
         const registerTab = document.getElementById('registerTab');
         const loginForm = document.getElementById('loginForm');
@@ -161,14 +158,12 @@
         const loginError = document.getElementById('loginError');
         const registerError = document.getElementById('registerError');
         
-        // Поля ввода
         const loginEmail = document.getElementById('loginEmail');
         const loginPassword = document.getElementById('loginPassword');
         const registerName = document.getElementById('registerName');
         const registerEmail = document.getElementById('registerEmail');
         const registerPassword = document.getElementById('registerPassword');
         
-        // Элементы чата
         const usersListDiv = document.getElementById('usersList');
         const chatsList = document.getElementById('chatsList');
         const currentChatHeader = document.getElementById('currentChatHeader');
@@ -177,11 +172,12 @@
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
 
-        // Переменные состояния
         let currentUser = null;
         let currentChatId = null;
-        let currentOtherUserId = null;  // ID собеседника в открытом чате
+        let currentOtherUserId = null;
         let messagesListener = null;
+        // Словарь для хранения активных слушателей чатов (чтобы отписываться)
+        let chatListeners = {};
 
         // ========== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ==========
         loginTab.addEventListener('click', () => {
@@ -223,10 +219,7 @@
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
-                    
-                    // Обновляем профиль с именем
                     return user.updateProfile({ displayName: name }).then(() => {
-                        // Сохраняем пользователя в базу данных
                         return usersRef.child(user.uid).set({
                             name: name,
                             email: email,
@@ -270,12 +263,6 @@
         // ========== ВЫХОД ==========
         logoutBtn.addEventListener('click', () => {
             auth.signOut();
-            currentChatId = null;
-            currentOtherUserId = null;
-            if (messagesListener) {
-                messagesRef.child(currentChatId).off('child_added', messagesListener);
-                messagesListener = null;
-            }
         });
 
         // ========== СЛЕДИМ ЗА СОСТОЯНИЕМ ПОЛЬЗОВАТЕЛЯ ==========
@@ -285,17 +272,22 @@
                 authContainer.style.display = 'none';
                 chatContainer.style.display = 'block';
                 
-                // Загружаем список чатов пользователя (с данными о последнем сообщении)
-                loadUserChats();
-                
                 // Загружаем список всех пользователей
                 loadAllUsers();
+                
+                // Загружаем список чатов пользователя (через запрос к chats)
+                loadUserChats();
             } else {
+                // Очищаем слушатели чатов
+                for (let chatId in chatListeners) {
+                    chatListeners[chatId].off();
+                }
+                chatListeners = {};
+                
                 currentUser = null;
                 authContainer.style.display = 'block';
                 chatContainer.style.display = 'none';
                 
-                // Очищаем поля
                 loginEmail.value = '';
                 loginPassword.value = '';
                 registerName.value = '';
@@ -305,77 +297,14 @@
             }
         });
 
-        // ========== ЗАГРУЗКА ЧАТОВ ПОЛЬЗОВАТЕЛЯ ==========
-        function loadUserChats() {
-            if (!currentUser) return;
-            
-            // Слушаем изменения в узле chats пользователя (там хранятся lastMessage и lastMessageTime для каждого чата)
-            usersRef.child(currentUser.uid).child('chats').on('value', (snapshot) => {
-                const chatsData = snapshot.val() || {}; // { chatId: { lastMessage, lastMessageTime } }
-                renderChatsList(chatsData);
-            });
-        }
-
-        // ========== ОТОБРАЖЕНИЕ СПИСКА ЧАТОВ ==========
-        async function renderChatsList(chatsData) {
-            const chatIds = Object.keys(chatsData);
-            if (chatIds.length === 0) {
-                chatsList.innerHTML = '<div class="text-muted text-center py-3">У вас пока нет чатов. Нажмите на пользователя, чтобы начать диалог.</div>';
-                return;
-            }
-
-            let html = '';
-            for (const chatId of chatIds) {
-                // Получаем данные чата из chatsData (последнее сообщение)
-                const chatInfo = chatsData[chatId];
-                const lastMessage = chatInfo?.lastMessage || 'Нет сообщений';
-                
-                // Получаем данные о чате, чтобы узнать участников
-                const chatSnapshot = await chatsRef.child(chatId).once('value');
-                const chatData = chatSnapshot.val();
-                if (!chatData) continue;
-                
-                // Находим собеседника
-                const otherParticipantId = Object.keys(chatData.participants || {}).find(id => id !== currentUser.uid);
-                if (!otherParticipantId) continue;
-                
-                // Получаем имя собеседника
-                const userSnapshot = await usersRef.child(otherParticipantId).once('value');
-                const userData = userSnapshot.val();
-                
-                const isActive = chatId === currentChatId ? 'active' : '';
-                
-                html += `
-                    <div class="chat-item ${isActive}" data-chat-id="${chatId}" data-user-id="${otherParticipantId}" data-user-name="${userData?.name || 'Пользователь'}">
-                        <strong>${userData?.name || 'Пользователь'}</strong>
-                        <div class="small text-muted">${lastMessage.substring(0, 30)}${lastMessage.length > 30 ? '...' : ''}</div>
-                    </div>
-                `;
-            }
-            
-            chatsList.innerHTML = html;
-            
-            document.querySelectorAll('.chat-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const chatId = item.dataset.chatId;
-                    const userId = item.dataset.userId;
-                    const userName = item.dataset.userName;
-                    openChat(chatId, userId, userName);
-                });
-            });
-        }
-
         // ========== ЗАГРУЗКА ВСЕХ ПОЛЬЗОВАТЕЛЕЙ (кроме текущего) ==========
         function loadAllUsers() {
             if (!currentUser) return;
-
             usersRef.on('value', (snapshot) => {
                 const usersObj = snapshot.val() || {};
                 let html = '';
-
                 for (const uid in usersObj) {
                     if (uid === currentUser.uid) continue;
-
                     const user = usersObj[uid];
                     html += `
                         <div class="list-group-item list-group-item-action user-item" 
@@ -387,18 +316,15 @@
                         </div>
                     `;
                 }
-
                 if (html === '') {
                     usersListDiv.innerHTML = '<div class="text-muted text-center py-2">Нет других пользователей</div>';
                 } else {
                     usersListDiv.innerHTML = html;
                 }
-
                 document.querySelectorAll('.user-item').forEach(item => {
                     item.addEventListener('click', async () => {
                         const userId = item.dataset.userId;
                         const userName = item.dataset.userName;
-                        
                         const chatId = await findOrCreatePrivateChat(currentUser.uid, userId);
                         openChat(chatId, userId, userName);
                     });
@@ -408,29 +334,25 @@
 
         // ========== ПОИСК ИЛИ СОЗДАНИЕ ПРИВАТНОГО ЧАТА ==========
         async function findOrCreatePrivateChat(uid1, uid2) {
-            const user1Chats = await usersRef.child(uid1).child('chats').once('value');
-            const user1ChatIds = user1Chats.val() || {};
-            
-            // Проверяем, есть ли уже общий чат
-            for (const chatId of Object.keys(user1ChatIds)) {
-                const chatSnapshot = await chatsRef.child(chatId).once('value');
-                const chatData = chatSnapshot.val();
-                
-                if (chatData && chatData.participants && chatData.participants[uid2]) {
-                    return chatId;
+            // Проверяем существующие чаты через запрос к chats
+            const snapshot = await chatsRef.once('value');
+            let existingChatId = null;
+            snapshot.forEach(chatSnapshot => {
+                const chat = chatSnapshot.val();
+                if (chat.participants && chat.participants[uid1] && chat.participants[uid2]) {
+                    existingChatId = chatSnapshot.key;
+                    return true; // break
                 }
-            }
-            
+            });
+            if (existingChatId) return existingChatId;
+
             // Создаём новый чат
             const newChatRef = chatsRef.push();
             const chatId = newChatRef.key;
             const timestamp = firebase.database.ServerValue.TIMESTAMP;
             
             const chatData = {
-                participants: {
-                    [uid1]: true,
-                    [uid2]: true
-                },
+                participants: { [uid1]: true, [uid2]: true },
                 type: 'private',
                 createdAt: timestamp,
                 lastMessage: '',
@@ -439,11 +361,107 @@
             
             await newChatRef.set(chatData);
             
-            // Добавляем чат в профили пользователей с пустым последним сообщением
-            await usersRef.child(uid1).child('chats').child(chatId).set({ lastMessage: '', lastMessageTime: timestamp });
-            await usersRef.child(uid2).child('chats').child(chatId).set({ lastMessage: '', lastMessageTime: timestamp });
+            // Добавляем ссылку на чат в профили пользователей (просто метку, без lastMessage)
+            await usersRef.child(uid1).child('chats').child(chatId).set(true);
+            await usersRef.child(uid2).child('chats').child(chatId).set(true);
             
             return chatId;
+        }
+
+        // ========== ЗАГРУЗКА СПИСКА ЧАТОВ ПОЛЬЗОВАТЕЛЯ ==========
+        function loadUserChats() {
+            if (!currentUser) return;
+            
+            // Получаем ID всех чатов, в которых участвует пользователь (хранятся в users/{uid}/chats)
+            usersRef.child(currentUser.uid).child('chats').on('value', async (snapshot) => {
+                const chatIdsMap = snapshot.val() || {};
+                const chatIds = Object.keys(chatIdsMap);
+                
+                // Отписываемся от старых слушателей чатов
+                for (let chatId in chatListeners) {
+                    chatListeners[chatId].off();
+                }
+                chatListeners = {};
+                
+                if (chatIds.length === 0) {
+                    chatsList.innerHTML = '<div class="text-muted text-center py-3">У вас пока нет чатов. Нажмите на пользователя, чтобы начать диалог.</div>';
+                    return;
+                }
+                
+                // Для каждого чата получаем данные и устанавливаем слушатель на изменения
+                let chatsData = [];
+                for (let chatId of chatIds) {
+                    const chatRef = chatsRef.child(chatId);
+                    // Слушаем изменения в чате (например, lastMessage)
+                    const listener = chatRef.on('value', (chatSnap) => {
+                        const chatVal = chatSnap.val();
+                        if (!chatVal) return;
+                        // Обновляем данные в массиве и перерисовываем список
+                        updateChatInList(chatId, chatVal);
+                    });
+                    chatListeners[chatId] = { ref: chatRef, listener };
+                    
+                    // Получаем начальные данные
+                    const chatSnap = await chatRef.once('value');
+                    const chatVal = chatSnap.val();
+                    if (chatVal) {
+                        chatsData.push({ id: chatId, ...chatVal });
+                    }
+                }
+                
+                // Функция обновления одного чата в списке
+                function updateChatInList(chatId, chatVal) {
+                    // Найдём индекс чата в текущем отображаемом списке
+                    // Для простоты перерисуем весь список заново
+                    renderChatsList(chatIds);
+                }
+                
+                // Первичная отрисовка
+                renderChatsList(chatIds);
+            });
+        }
+
+        // ========== ОТОБРАЖЕНИЕ СПИСКА ЧАТОВ ==========
+        async function renderChatsList(chatIds) {
+            if (!currentUser) return;
+            
+            let html = '';
+            for (let chatId of chatIds) {
+                const chatSnap = await chatsRef.child(chatId).once('value');
+                const chatData = chatSnap.val();
+                if (!chatData) continue;
+                
+                const otherParticipantId = Object.keys(chatData.participants || {}).find(id => id !== currentUser.uid);
+                if (!otherParticipantId) continue;
+                
+                const userSnap = await usersRef.child(otherParticipantId).once('value');
+                const userData = userSnap.val();
+                
+                const lastMessage = chatData.lastMessage || 'Нет сообщений';
+                const isActive = chatId === currentChatId ? 'active' : '';
+                
+                html += `
+                    <div class="chat-item ${isActive}" data-chat-id="${chatId}" data-user-id="${otherParticipantId}" data-user-name="${userData?.name || 'Пользователь'}">
+                        <strong>${userData?.name || 'Пользователь'}</strong>
+                        <div class="small text-muted">${lastMessage.substring(0, 30)}${lastMessage.length > 30 ? '...' : ''}</div>
+                    </div>
+                `;
+            }
+            
+            if (html === '') {
+                chatsList.innerHTML = '<div class="text-muted text-center py-3">У вас пока нет чатов. Нажмите на пользователя, чтобы начать диалог.</div>';
+            } else {
+                chatsList.innerHTML = html;
+            }
+            
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const chatId = item.dataset.chatId;
+                    const userId = item.dataset.userId;
+                    const userName = item.dataset.userName;
+                    openChat(chatId, userId, userName);
+                });
+            });
         }
 
         // ========== ОТКРЫТИЕ ЧАТА ==========
@@ -459,7 +477,6 @@
                 messagesRef.child(currentChatId).off('child_added', messagesListener);
             }
             
-            // Подписываемся на новые сообщения в этом чате
             messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snapshot) => {
                 const message = snapshot.val();
                 displayMessage(message);
@@ -522,18 +539,8 @@
             // Сохраняем сообщение
             await messagesRef.child(currentChatId).push(messageData);
             
-            // Обновляем информацию о последнем сообщении в самом чате
+            // Обновляем lastMessage в самом чате (это увидят оба участника через слушатели)
             await chatsRef.child(currentChatId).update({
-                lastMessage: text,
-                lastMessageTime: timestamp
-            });
-            
-            // Обновляем lastMessage в профилях обоих участников (чтобы список чатов обновлялся)
-            await usersRef.child(currentUser.uid).child('chats').child(currentChatId).update({
-                lastMessage: text,
-                lastMessageTime: timestamp
-            });
-            await usersRef.child(currentOtherUserId).child('chats').child(currentChatId).update({
                 lastMessage: text,
                 lastMessageTime: timestamp
             });
