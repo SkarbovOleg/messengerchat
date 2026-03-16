@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мессенджер с аватарками (исправленный)</title>
+    <title>Мессенджер с аватарками и стикерами</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome для иконок (аватарок) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -17,21 +17,23 @@
         .message { margin-bottom: 15px; display: flex; flex-direction: column; }
         .my-message { align-items: flex-end; }
         .other-message { align-items: flex-start; }
-        .message-bubble { max-width: 70%; padding: 10px 15px; border-radius: 18px; }
+        .message-bubble { max-width: 70%; padding: 10px 15px; border-radius: 18px; word-wrap: break-word; }
         .my-message .message-bubble { background: #0084ff; color: white; }
         .other-message .message-bubble { background: #e4e6eb; color: black; }
-        .message-info { font-size: 0.75rem; color: #65676b; margin-bottom: 2px; margin-left: 10px; display: flex; align-items: center; gap: 5px; }
+        .message-info { font-size: 0.75rem; color: #65676b; margin-bottom: 2px; display: flex; align-items: center; gap: 5px; }
         .my-message .message-info { justify-content: flex-end; }
         .chat-item, .user-item { padding: 10px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
         .chat-item:hover, .user-item:hover { background: #e4e6eb; }
         .chat-item.active { background: #e7f3ff; border-left: 3px solid #0084ff; }
         .current-chat-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; }
         .error-message { color: red; font-size: 0.9rem; }
+        /* Стикеры */
         .sticker-panel { display: none; position: absolute; bottom: 70px; left: 20px; background: white; border: 1px solid #ccc; border-radius: 10px; padding: 10px; width: 250px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000; }
         .sticker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
         .sticker { font-size: 1.8rem; cursor: pointer; text-align: center; padding: 5px; border-radius: 5px; }
         .sticker:hover { background: #e4e6eb; }
-        .avatar-selector { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.3); z-index: 2000; max-width: 400px; }
+        /* Аватарки */
+        .avatar-selector { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.3); z-index: 2000; max-width: 400px; width: 90%; }
         .avatar-selector h5 { margin-bottom: 15px; }
         .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
         .avatar-option { font-size: 2.5rem; cursor: pointer; text-align: center; padding: 5px; border-radius: 8px; }
@@ -55,7 +57,7 @@
     <!-- Форма входа/регистрации -->
     <div id="authContainer" class="auth-container">
         <h2 class="text-center mb-4">💬 Мессенджер</h2>
-        <ul class="nav nav-tabs mb-3">
+        <ul class="nav nav-tabs mb-3" id="authTabs">
             <li class="nav-item"><button class="nav-link active" id="loginTab">Вход</button></li>
             <li class="nav-item"><button class="nav-link" id="registerTab">Регистрация</button></li>
         </ul>
@@ -129,8 +131,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <script>
-        // Дождёмся полной загрузки DOM, чтобы все элементы были доступны
-        document.addEventListener('DOMContentLoaded', function() {
+        (function() {
             // 🔥 ВАША КОНФИГУРАЦИЯ FIREBASE
             const firebaseConfig = {
                 apiKey: "AIzaSyCsLl9HXoauEKn5dBMCioT2OoHkJ_8IECg",
@@ -163,40 +164,42 @@
             // Список стикеров (эмодзи)
             const stickers = ['😊', '😂', '😍', '👍', '🎉', '😢', '😡', '🤔', '🙏', '🔥', '⭐', '💔', '✅', '❌', '❗', '❓', '📌', '💡', '🎈', '🏆'];
 
-            // Получаем все элементы интерфейса с проверкой на существование
-            const authContainer = document.getElementById('authContainer');
-            const chatContainer = document.getElementById('chatContainer');
-            const loginTab = document.getElementById('loginTab');
-            const registerTab = document.getElementById('registerTab');
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            const loginBtn = document.getElementById('loginBtn');
-            const registerBtn = document.getElementById('registerBtn');
-            const loginError = document.getElementById('loginError');
-            const registerError = document.getElementById('registerError');
-            const loginEmail = document.getElementById('loginEmail');
-            const loginPassword = document.getElementById('loginPassword');
-            const registerName = document.getElementById('registerName');
-            const registerEmail = document.getElementById('registerEmail');
-            const registerPassword = document.getElementById('registerPassword');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const usersListDiv = document.getElementById('usersList');
-            const chatsListDiv = document.getElementById('chatsList');
-            const currentChatHeader = document.getElementById('currentChatHeader');
-            const messagesArea = document.getElementById('messagesArea');
-            const messageInputContainer = document.getElementById('messageInputContainer');
-            const messageInput = document.getElementById('messageInput');
-            const sendButton = document.getElementById('sendButton');
-            const stickerBtn = document.getElementById('stickerBtn');
-            const stickerPanel = document.getElementById('stickerPanel');
-            const stickerGrid = document.getElementById('stickerGrid');
-            const overlay = document.getElementById('overlay');
-            const avatarSelector = document.getElementById('avatarSelector');
-            const avatarGrid = document.getElementById('avatarGrid');
-            const closeAvatarBtn = document.getElementById('closeAvatarBtn');
-            const currentUserBlock = document.getElementById('currentUserBlock');
-            const currentUserAvatar = document.getElementById('currentUserAvatar');
-            const currentUserName = document.getElementById('currentUserName');
+            // ---------- ИНИЦИАЛИЗАЦИЯ ЭЛЕМЕНТОВ (с проверкой) ----------
+            const $ = (id) => document.getElementById(id);
+
+            const authContainer = $('authContainer');
+            const chatContainer = $('chatContainer');
+            const loginTab = $('loginTab');
+            const registerTab = $('registerTab');
+            const loginForm = $('loginForm');
+            const registerForm = $('registerForm');
+            const loginBtn = $('loginBtn');
+            const registerBtn = $('registerBtn');
+            const loginError = $('loginError');
+            const registerError = $('registerError');
+            const loginEmail = $('loginEmail');
+            const loginPassword = $('loginPassword');
+            const registerName = $('registerName');
+            const registerEmail = $('registerEmail');
+            const registerPassword = $('registerPassword');
+            const logoutBtn = $('logoutBtn');
+            const usersListDiv = $('usersList');
+            const chatsListDiv = $('chatsList');
+            const currentChatHeader = $('currentChatHeader');
+            const messagesArea = $('messagesArea');
+            const messageInputContainer = $('messageInputContainer');
+            const messageInput = $('messageInput');
+            const sendButton = $('sendButton');
+            const stickerBtn = $('stickerBtn');
+            const stickerPanel = $('stickerPanel');
+            const stickerGrid = $('stickerGrid');
+            const overlay = $('overlay');
+            const avatarSelector = $('avatarSelector');
+            const avatarGrid = $('avatarGrid');
+            const closeAvatarBtn = $('closeAvatarBtn');
+            const currentUserBlock = $('currentUserBlock');
+            const currentUserAvatar = $('currentUserAvatar');
+            const currentUserName = $('currentUserName');
 
             // Переменные состояния
             let currentUser = null;
@@ -204,32 +207,46 @@
             let currentChatType = null;
             let messagesListener = null;
 
-            // ---------- ИНИЦИАЛИЗАЦИЯ СТИКЕРОВ (если есть соответствующие элементы) ----------
+            // ---------- ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ БЕЗОПАСНОГО ДОБАВЛЕНИЯ ОБРАБОТЧИКОВ ----------
+            function safeAddListener(element, event, handler) {
+                if (element) {
+                    element.addEventListener(event, handler);
+                } else {
+                    console.warn(`Element not found for event ${event}`);
+                }
+            }
+
+            // ---------- ИНИЦИАЛИЗАЦИЯ СТИКЕРОВ ----------
             if (stickerGrid) {
                 stickers.forEach(sticker => {
                     const div = document.createElement('div');
                     div.classList.add('sticker');
                     div.textContent = sticker;
-                    div.addEventListener('click', () => {
-                        if (messageInput) messageInput.value += sticker;
+                    div.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (messageInput) {
+                            messageInput.value += sticker;
+                        }
                         if (stickerPanel) stickerPanel.style.display = 'none';
                     });
                     stickerGrid.appendChild(div);
                 });
             }
 
+            // Кнопка стикеров
             if (stickerBtn && stickerPanel) {
                 stickerBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     stickerPanel.style.display = stickerPanel.style.display === 'none' ? 'block' : 'none';
                 });
-
-                document.addEventListener('click', (e) => {
-                    if (stickerPanel && !stickerPanel.contains(e.target) && stickerBtn && !stickerBtn.contains(e.target)) {
-                        stickerPanel.style.display = 'none';
-                    }
-                });
             }
+
+            // Клик вне панели стикеров
+            document.addEventListener('click', (e) => {
+                if (stickerPanel && stickerBtn && !stickerPanel.contains(e.target) && !stickerBtn.contains(e.target)) {
+                    stickerPanel.style.display = 'none';
+                }
+            });
 
             // ---------- АВАТАРКИ ----------
             if (avatarGrid) {
@@ -239,7 +256,7 @@
                     div.innerHTML = `<i class="${iconClass}"></i>`;
                     div.dataset.icon = iconClass;
                     div.addEventListener('click', async () => {
-                        if (currentUser) {
+                        if (currentUser && currentUser.uid) {
                             await usersRef.child(currentUser.uid).update({ avatar: iconClass });
                             if (currentUserAvatar) currentUserAvatar.className = iconClass;
                             if (avatarSelector) avatarSelector.style.display = 'none';
@@ -250,6 +267,7 @@
                 });
             }
 
+            // Открыть выбор аватарки при клике на блок пользователя
             if (currentUserBlock) {
                 currentUserBlock.addEventListener('click', () => {
                     if (avatarSelector) avatarSelector.style.display = 'block';
@@ -271,79 +289,74 @@
                 });
             }
 
-            // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
+            // ---------- ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ----------
+            safeAddListener(loginTab, 'click', () => {
+                if (loginTab) loginTab.classList.add('active');
+                if (registerTab) registerTab.classList.remove('active');
+                if (loginForm) loginForm.style.display = 'block';
+                if (registerForm) registerForm.style.display = 'none';
+                clearErrors();
+            });
+
+            safeAddListener(registerTab, 'click', () => {
+                if (registerTab) registerTab.classList.add('active');
+                if (loginTab) loginTab.classList.remove('active');
+                if (registerForm) registerForm.style.display = 'block';
+                if (loginForm) loginForm.style.display = 'none';
+                clearErrors();
+            });
+
             function clearErrors() {
                 if (loginError) loginError.textContent = '';
                 if (registerError) registerError.textContent = '';
             }
 
-            // Переключение вкладок
-            if (loginTab && registerTab && loginForm && registerForm) {
-                loginTab.addEventListener('click', () => {
-                    loginTab.classList.add('active');
-                    registerTab.classList.remove('active');
-                    loginForm.style.display = 'block';
-                    registerForm.style.display = 'none';
-                    clearErrors();
-                });
-                registerTab.addEventListener('click', () => {
-                    registerTab.classList.add('active');
-                    loginTab.classList.remove('active');
-                    registerForm.style.display = 'block';
-                    loginForm.style.display = 'none';
-                    clearErrors();
-                });
-            }
-
             // ---------- РЕГИСТРАЦИЯ ----------
-            if (registerBtn) {
-                registerBtn.addEventListener('click', async () => {
-                    const name = registerName ? registerName.value.trim() : '';
-                    const email = registerEmail ? registerEmail.value.trim() : '';
-                    const password = registerPassword ? registerPassword.value : '';
-                    if (!name || !email || !password) {
-                        if (registerError) registerError.textContent = 'Заполните все поля';
-                        return;
-                    }
-                    if (password.length < 6) {
-                        if (registerError) registerError.textContent = 'Пароль должен быть минимум 6 символов';
-                        return;
-                    }
-                    try {
-                        const cred = await auth.createUserWithEmailAndPassword(email, password);
-                        await cred.user.updateProfile({ displayName: name });
-                        await usersRef.child(cred.user.uid).set({
-                            name,
-                            email,
-                            avatar: 'fas fa-user'
-                        });
-                        await addUserToPublicChat(cred.user.uid);
-                    } catch (e) {
-                        if (registerError) registerError.textContent = e.message;
-                    }
-                });
-            }
+            safeAddListener(registerBtn, 'click', async () => {
+                const name = registerName ? registerName.value.trim() : '';
+                const email = registerEmail ? registerEmail.value.trim() : '';
+                const password = registerPassword ? registerPassword.value : '';
+                if (!name || !email || !password) {
+                    if (registerError) registerError.textContent = 'Заполните все поля';
+                    return;
+                }
+                if (password.length < 6) {
+                    if (registerError) registerError.textContent = 'Пароль должен быть минимум 6 символов';
+                    return;
+                }
+                try {
+                    const cred = await auth.createUserWithEmailAndPassword(email, password);
+                    await cred.user.updateProfile({ displayName: name });
+                    // Сохраняем пользователя в БД с аватаркой по умолчанию
+                    await usersRef.child(cred.user.uid).set({
+                        name: name,
+                        email: email,
+                        avatar: 'fas fa-user'
+                    });
+                    await addUserToPublicChat(cred.user.uid);
+                } catch (e) {
+                    console.error(e);
+                    if (registerError) registerError.textContent = e.message;
+                }
+            });
 
             // ---------- ВХОД ----------
-            if (loginBtn) {
-                loginBtn.addEventListener('click', () => {
-                    const email = loginEmail ? loginEmail.value.trim() : '';
-                    const password = loginPassword ? loginPassword.value : '';
-                    if (!email || !password) {
-                        if (loginError) loginError.textContent = 'Заполните поля';
-                        return;
-                    }
-                    auth.signInWithEmailAndPassword(email, password)
-                        .catch(e => {
-                            if (loginError) loginError.textContent = e.message;
-                        });
-                });
-            }
+            safeAddListener(loginBtn, 'click', () => {
+                const email = loginEmail ? loginEmail.value.trim() : '';
+                const password = loginPassword ? loginPassword.value : '';
+                if (!email || !password) {
+                    if (loginError) loginError.textContent = 'Заполните поля';
+                    return;
+                }
+                auth.signInWithEmailAndPassword(email, password)
+                    .catch(e => {
+                        console.error(e);
+                        if (loginError) loginError.textContent = e.message;
+                    });
+            });
 
             // ---------- ВЫХОД ----------
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', () => auth.signOut());
-            }
+            safeAddListener(logoutBtn, 'click', () => auth.signOut());
 
             // ---------- СОСТОЯНИЕ ПОЛЬЗОВАТЕЛЯ ----------
             auth.onAuthStateChanged(async (user) => {
@@ -365,6 +378,7 @@
                     currentUser = null;
                     if (authContainer) authContainer.style.display = 'block';
                     if (chatContainer) chatContainer.style.display = 'none';
+                    // Очищаем поля
                     if (loginEmail) loginEmail.value = '';
                     if (loginPassword) loginPassword.value = '';
                     if (registerName) registerName.value = '';
@@ -507,7 +521,7 @@
                 if (messageInputContainer) messageInputContainer.style.display = 'block';
                 if (messagesArea) messagesArea.innerHTML = '';
 
-                if (messagesListener) {
+                if (messagesListener && currentChatId) {
                     messagesRef.child(currentChatId).off('child_added', messagesListener);
                 }
                 messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snap) => {
@@ -556,24 +570,22 @@
             }
 
             // ---------- ОТПРАВКА СООБЩЕНИЯ ----------
-            if (sendButton) {
-                sendButton.addEventListener('click', async () => {
-                    const text = messageInput ? messageInput.value.trim() : '';
-                    if (!text || !currentChatId) return;
-                    const msg = {
-                        senderId: currentUser.uid,
-                        senderName: currentUser.displayName || currentUser.email,
-                        text: text,
-                        timestamp: firebase.database.ServerValue.TIMESTAMP
-                    };
-                    await messagesRef.child(currentChatId).push(msg);
-                    await chatsRef.child(currentChatId).update({
-                        lastMessage: text,
-                        lastMessageTime: msg.timestamp
-                    });
-                    if (messageInput) messageInput.value = '';
+            safeAddListener(sendButton, 'click', async () => {
+                const text = messageInput ? messageInput.value.trim() : '';
+                if (!text || !currentChatId) return;
+                const msg = {
+                    senderId: currentUser.uid,
+                    senderName: currentUser.displayName || currentUser.email,
+                    text: text,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+                await messagesRef.child(currentChatId).push(msg);
+                await chatsRef.child(currentChatId).update({
+                    lastMessage: text,
+                    lastMessageTime: msg.timestamp
                 });
-            }
+                if (messageInput) messageInput.value = '';
+            });
 
             if (messageInput) {
                 messageInput.addEventListener('keypress', (e) => {
@@ -581,7 +593,7 @@
                 });
             }
 
-        }); // конец DOMContentLoaded
+        })();
     </script>
 </body>
 </html>
