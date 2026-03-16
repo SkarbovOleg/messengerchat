@@ -28,7 +28,7 @@
         .current-chat-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; }
         .error-message { color: red; font-size: 0.9rem; }
         /* Стикеры */
-        .sticker-panel { display: none; position: absolute; bottom: 70px; left: 20px; background: white; border: 1px solid #ccc; border-radius: 10px; padding: 10px; width: 250px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000; }
+        .sticker-panel { display: none; position: absolute; bottom: 70px; left: 0; background: white; border: 1px solid #ccc; border-radius: 10px; padding: 10px; width: 250px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000; }
         .sticker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
         .sticker { font-size: 1.8rem; cursor: pointer; text-align: center; padding: 5px; border-radius: 5px; transition: background 0.2s; }
         .sticker:hover { background: #e4e6eb; }
@@ -110,13 +110,13 @@
                     <div class="text-muted text-center py-5">Выберите чат слева</div>
                 </div>
                 <div id="messageInputContainer" style="display:none; padding:15px; border-top:1px solid #dee2e6; position: relative;">
-                    <!-- Кнопка стикеров -->
-                    <button class="btn btn-outline-secondary" id="stickerBtn" style="position: absolute; left: 25px; top: 15px;">😊</button>
-                    <!-- Панель стикеров -->
+                    <!-- Панель стикеров (всплывающая) -->
                     <div id="stickerPanel" class="sticker-panel">
                         <div class="sticker-grid" id="stickerGrid"></div>
                     </div>
-                    <div class="input-group" style="padding-left: 50px;">
+                    <!-- Поле ввода с кнопками (стикер слева) -->
+                    <div class="input-group">
+                        <button class="btn btn-outline-secondary" id="stickerBtn" type="button">😊</button>
                         <input type="text" id="messageInput" class="form-control" placeholder="Введите сообщение...">
                         <button class="btn btn-primary" id="sendButton">Отправить</button>
                     </div>
@@ -201,6 +201,11 @@
             const currentUserAvatar = $('currentUserAvatar');
             const currentUserName = $('currentUserName');
 
+            // Отладка: проверим, нашлись ли элементы стикеров
+            console.log('stickerBtn:', stickerBtn);
+            console.log('stickerPanel:', stickerPanel);
+            console.log('stickerGrid:', stickerGrid);
+
             // Переменные состояния
             let currentUser = null;
             let currentChatId = null;
@@ -238,6 +243,8 @@
                         stickerPanel.style.display = 'none';
                     }
                 });
+            } else {
+                console.error('stickerGrid не найден!');
             }
 
             // Кнопка открытия панели стикеров
@@ -246,6 +253,8 @@
                     e.stopPropagation();
                     stickerPanel.style.display = stickerPanel.style.display === 'none' ? 'block' : 'none';
                 });
+            } else {
+                console.error('stickerBtn или stickerPanel не найдены');
             }
 
             // Клик вне панели стикеров
