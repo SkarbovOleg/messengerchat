@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Чат — уведомления и реакции</title>
+    <title>Чат — печатает и профиль</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -26,12 +26,12 @@
         .message-bubble { max-width: 70%; padding: 10px 15px; border-radius: 18px; word-wrap: break-word; }
         .my-message .message-bubble { background: #0084ff; color: white; }
         .other-message .message-bubble { background: #e4e6eb; color: black; }
-        .message-info { font-size: 0.75rem; color: #65676b; display: flex; align-items: center; gap: 5px; margin-bottom: 2px; }
+        .message-info { font-size: 0.75rem; color: #65676b; display: flex; align-items: center; gap: 5px; margin-bottom: 2px; cursor: pointer; }
         .my-message .message-info { justify-content: flex-end; }
         .chat-item, .user-item { padding: 10px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
         .chat-item:hover, .user-item:hover { background: #e4e6eb; }
         .chat-item.active { background: #e7f3ff; border-left: 3px solid #0084ff; }
-        .current-chat-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; }
+        .current-chat-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; display: flex; align-items: center; gap: 10px; }
         .error-message { color: red; font-size: 0.9rem; }
         .sticker-panel { display: none; position: absolute; bottom: 70px; left: 0; background: white; border: 1px solid #ccc; border-radius: 10px; padding: 10px; width: 250px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000; }
         .sticker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
@@ -66,6 +66,42 @@
             font-size: 0.7rem;
             color: #65676b;
             margin-left: 5px;
+        }
+
+        /* Индикатор печатает */
+        .typing-indicator {
+            font-size: 0.8rem;
+            color: #65676b;
+            margin-left: 10px;
+            font-style: italic;
+        }
+
+        /* Модальное окно профиля */
+        .profile-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            z-index: 2001;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        .profile-modal i {
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
+        .profile-modal h3 {
+            margin-bottom: 5px;
+        }
+        .profile-modal p {
+            margin: 5px 0;
+            color: #65676b;
         }
 
         /* Кнопка реакции */
@@ -106,7 +142,8 @@
         body.dark-theme .messages-area,
         body.dark-theme .current-chat-header,
         body.dark-theme .sticker-panel,
-        body.dark-theme .avatar-selector {
+        body.dark-theme .avatar-selector,
+        body.dark-theme .profile-modal {
             background: #2d2d2d;
             border-color: #444;
             color: #e0e0e0;
@@ -184,6 +221,17 @@
         <button class="btn btn-secondary btn-sm mt-3 w-100" id="closeAvatarBtn">Закрыть</button>
     </div>
 
+    <!-- Модальное окно профиля -->
+    <div id="profileModal" class="profile-modal">
+        <i id="profileAvatar" class="fas fa-user"></i>
+        <h3 id="profileName">Имя</h3>
+        <p id="profileEmail">email</p>
+        <p id="profileStatus">статус</p>
+        <p id="profileRegistered">зарегистрирован</p>
+        <button class="btn btn-primary mt-3" id="profileMessageBtn">Написать сообщение</button>
+        <button class="btn btn-secondary mt-2" id="closeProfileBtn">Закрыть</button>
+    </div>
+
     <div id="authContainer" class="auth-container">
         <h2 class="text-center mb-4">💬 Чат</h2>
         <ul class="nav nav-tabs mb-3" id="authTabs">
@@ -232,9 +280,10 @@
             </div>
 
             <div class="col-md-8 main-chat">
-                <div id="currentChatHeader" class="current-chat-header d-flex align-items-center">
-                    <h5 class="mb-0">Выберите чат</h5>
-                    <span id="currentChatStatus" class="last-seen ms-2"></span>
+                <div id="currentChatHeader" class="current-chat-header">
+                    <h5 class="mb-0" id="chatHeaderName">Выберите чат</h5>
+                    <span id="typingIndicator" class="typing-indicator"></span>
+                    <span id="currentChatStatus" class="last-seen ms-auto"></span>
                 </div>
                 <div id="messagesArea" class="messages-area">
                     <div class="text-muted text-center py-5">Выберите чат слева</div>
@@ -312,6 +361,7 @@
             const usersListDiv = $('usersList');
             const chatsListDiv = $('chatsList');
             const currentChatHeader = $('currentChatHeader');
+            const chatHeaderName = $('chatHeaderName');
             const messagesArea = $('messagesArea');
             const messageInputContainer = $('messageInputContainer');
             const messageInput = $('messageInput');
@@ -328,7 +378,16 @@
             const currentUserName = $('currentUserName');
             const currentUserStatus = $('currentUserStatus');
             const currentChatStatus = $('currentChatStatus');
+            const typingIndicator = $('typingIndicator');
             const themeToggle = $('themeToggle');
+            const profileModal = $('profileModal');
+            const profileAvatar = $('profileAvatar');
+            const profileName = $('profileName');
+            const profileEmail = $('profileEmail');
+            const profileStatus = $('profileStatus');
+            const profileRegistered = $('profileRegistered');
+            const profileMessageBtn = $('profileMessageBtn');
+            const closeProfileBtn = $('closeProfileBtn');
 
             // Тема
             function setTheme(theme) {
@@ -357,11 +416,11 @@
             let messagesListener = null;
             let chatListeners = {};
             let userStatusListener = null;
+            let typingTimeout = null;
 
-            // Звук уведомления (ЗАМЕНИТЕ ЭТОТ ПУТЬ НА СВОЙ ФАЙЛ)
-            const notificationSound = new Audio('https://zvukogram.com/index.php?r=site/download&id=84076&type=mp3');
+            // Звук уведомления
+            const notificationSound = new Audio('sounds/notify.mp3');
 
-            // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
             function safeAddListener(element, event, handler) {
                 if (element) element.addEventListener(event, handler);
                 else console.warn(`Element not found: ${event}`);
@@ -381,6 +440,42 @@
                 if (hours < 24) return `${hours} ${hours === 1 ? 'час' : 'часов'} назад`;
                 return `${days} ${days === 1 ? 'день' : 'дней'} назад`;
             }
+
+            // Функция открытия профиля
+            function showProfile(uid) {
+                usersRef.child(uid).once('value', (snap) => {
+                    const user = snap.val();
+                    if (!user) return;
+                    profileAvatar.className = user.avatar || 'fas fa-user';
+                    profileName.textContent = user.name || 'Без имени';
+                    profileEmail.textContent = user.email || '';
+                    const status = user.online ? 'Онлайн' : `Был(а) ${formatLastSeen(user.lastSeen)}`;
+                    profileStatus.textContent = status;
+                    if (user.createdAt) {
+                        const date = new Date(user.createdAt).toLocaleDateString('ru-RU');
+                        profileRegistered.textContent = `Зарегистрирован(а): ${date}`;
+                    } else {
+                        profileRegistered.textContent = '';
+                    }
+                    if (uid === currentUser.uid) {
+                        profileMessageBtn.style.display = 'none';
+                    } else {
+                        profileMessageBtn.style.display = 'block';
+                        profileMessageBtn.onclick = () => {
+                            profileModal.style.display = 'none';
+                            overlay.style.display = 'none';
+                            createPrivateChat(uid, user.name);
+                        };
+                    }
+                    profileModal.style.display = 'block';
+                    overlay.style.display = 'block';
+                });
+            }
+
+            closeProfileBtn.addEventListener('click', () => {
+                profileModal.style.display = 'none';
+                overlay.style.display = 'none';
+            });
 
             // Стикеры
             if (stickerGrid) {
@@ -442,7 +537,8 @@
             }
             if (overlay) {
                 overlay.addEventListener('click', () => {
-                    if (avatarSelector) avatarSelector.style.display = 'none';
+                    avatarSelector.style.display = 'none';
+                    profileModal.style.display = 'none';
                     overlay.style.display = 'none';
                 });
             }
@@ -488,7 +584,8 @@
                         email: email,
                         avatar: 'fas fa-user',
                         online: false,
-                        lastSeen: firebase.database.ServerValue.TIMESTAMP
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP,
+                        createdAt: firebase.database.ServerValue.TIMESTAMP
                     });
                     await addUserToPublicChat(cred.user.uid);
                 } catch (e) {
@@ -609,8 +706,8 @@
                         const statusClass = user.online ? 'online-indicator' : 'offline-indicator';
                         const lastSeenText = user.online ? '' : formatLastSeen(user.lastSeen);
                         html += `<div class="list-group-item user-item" data-uid="${uid}" data-name="${user.name}">
-                            <i class="${user.avatar || 'fas fa-user'}" style="font-size: 1.5rem; width: 30px;"></i>
-                            <div>
+                            <i class="${user.avatar || 'fas fa-user'}" style="font-size: 1.5rem; width: 30px; cursor: pointer;" onclick="showProfile('${uid}')"></i>
+                            <div style="cursor: pointer;" onclick="showProfile('${uid}')">
                                 <strong>${user.name}</strong>
                                 <span class="${statusClass}"></span>
                                 <span class="last-seen">${lastSeenText}</span>
@@ -619,12 +716,8 @@
                         </div>`;
                     }
                     if (usersListDiv) usersListDiv.innerHTML = html || '<div class="text-muted">Нет других пользователей</div>';
-                    document.querySelectorAll('.user-item').forEach(el => {
-                        el.addEventListener('click', () => {
-                            const uid = el.dataset.uid;
-                            const name = el.dataset.name;
-                            createPrivateChat(uid, name);
-                        });
+                    document.querySelectorAll('.user-item i, .user-item div[onclick]').forEach(el => {
+                        // Обработчик уже в onclick, но добавим для надёжности
                     });
                 });
             }
@@ -731,8 +824,8 @@
                 currentChatType = type;
                 currentOtherUserId = otherUid || null;
 
-                if (currentChatHeader) {
-                    currentChatHeader.innerHTML = `<h5 class="mb-0">${displayName}</h5>`;
+                if (chatHeaderName) {
+                    chatHeaderName.textContent = displayName;
                     if (type === 'private' && otherUid) {
                         updateChatHeaderStatus(otherUid);
                         if (userStatusListener) {
@@ -743,8 +836,18 @@
                             const user = snap.val();
                             if (user) updateChatHeaderStatus(otherUid);
                         });
+                        // Слушатель печатает
+                        const typingRef = db.ref(`chats/${chatId}/typing/${otherUid}`);
+                        typingRef.on('value', (snap) => {
+                            if (snap.val() === true) {
+                                typingIndicator.textContent = 'печатает...';
+                            } else {
+                                typingIndicator.textContent = '';
+                            }
+                        });
                     } else {
                         if (currentChatStatus) currentChatStatus.innerHTML = '';
+                        if (typingIndicator) typingIndicator.textContent = '';
                         if (userStatusListener) {
                             userStatusListener.off();
                             userStatusListener = null;
@@ -761,10 +864,8 @@
                 messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snap) => {
                     const msg = snap.val();
                     displayMessage(msg);
-                    // Воспроизводим уведомление, если сообщение не от текущего пользователя и чат не активен (опционально)
                     if (msg.senderId !== currentUser.uid) {
                         notificationSound.play().catch(e => console.log('Звук не воспроизвёлся', e));
-                        // Браузерное уведомление
                         if (Notification.permission === 'granted') {
                             new Notification('Новое сообщение в чате', {
                                 body: `${msg.senderName}: ${msg.text}`,
@@ -812,13 +913,12 @@
                 msgDiv.className = `message ${isMy ? 'my-message' : 'other-message'}`;
                 const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
-                // Получаем реакции
                 const reactions = msg.reactions || {};
                 const count = Object.keys(reactions).length;
                 const userReacted = reactions[currentUser.uid] ? true : false;
 
                 msgDiv.innerHTML = `
-                    <div class="message-info">
+                    <div class="message-info" onclick="showProfile('${msg.senderId}')">
                         <i class="${avatarIcon}" style="font-size: 1rem; width: 20px;"></i>
                         <span>${msg.senderName || 'Пользователь'} · ${time}</span>
                     </div>
@@ -828,7 +928,6 @@
                     </button>
                 `;
 
-                // Обработчик реакции
                 const btn = msgDiv.querySelector('.reaction-btn');
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
@@ -836,10 +935,8 @@
                     const reacted = btn.dataset.reacted === 'true';
                     const updates = {};
                     if (reacted) {
-                        // Убрать реакцию
                         updates[`messages/${currentChatId}/${messageId}/reactions/${currentUser.uid}`] = null;
                     } else {
-                        // Поставить реакцию
                         updates[`messages/${currentChatId}/${messageId}/reactions/${currentUser.uid}`] = true;
                     }
                     await db.ref().update(updates);
@@ -847,6 +944,19 @@
 
                 messagesArea.appendChild(msgDiv);
                 messagesArea.scrollTop = messagesArea.scrollHeight;
+            }
+
+            // Отслеживание печатания
+            if (messageInput) {
+                messageInput.addEventListener('input', () => {
+                    if (!currentChatId || !currentOtherUserId) return;
+                    const typingRef = db.ref(`chats/${currentChatId}/typing/${currentUser.uid}`);
+                    typingRef.set(true);
+                    if (typingTimeout) clearTimeout(typingTimeout);
+                    typingTimeout = setTimeout(() => {
+                        typingRef.remove();
+                    }, 2000);
+                });
             }
 
             // Отправка сообщения
@@ -866,6 +976,10 @@
                     lastMessageTime: msg.timestamp
                 });
                 if (messageInput) messageInput.value = '';
+                // Убираем индикатор печатания
+                if (currentChatId) {
+                    db.ref(`chats/${currentChatId}/typing/${currentUser.uid}`).remove();
+                }
             });
 
             if (messageInput) {
@@ -873,6 +987,9 @@
                     if (e.key === 'Enter' && sendButton) sendButton.click();
                 });
             }
+
+            // Глобальная функция для вызова из onclick
+            window.showProfile = showProfile;
         })();
     </script>
 </body>
