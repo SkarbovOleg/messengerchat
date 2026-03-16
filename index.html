@@ -180,6 +180,7 @@
         // Переменные состояния
         let currentUser = null;
         let currentChatId = null;
+        let currentOtherUserId = null;  // ID собеседника в открытом чате
         let messagesListener = null;
 
         // ========== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ==========
@@ -270,6 +271,7 @@
         logoutBtn.addEventListener('click', () => {
             auth.signOut();
             currentChatId = null;
+            currentOtherUserId = null;
             if (messagesListener) {
                 messagesRef.child(currentChatId).off('child_added', messagesListener);
                 messagesListener = null;
@@ -283,7 +285,7 @@
                 authContainer.style.display = 'none';
                 chatContainer.style.display = 'block';
                 
-                // Загружаем список чатов пользователя
+                // Загружаем список чатов пользователя (с данными о последнем сообщении)
                 loadUserChats();
                 
                 // Загружаем список всех пользователей
@@ -307,14 +309,16 @@
         function loadUserChats() {
             if (!currentUser) return;
             
+            // Слушаем изменения в узле chats пользователя (там хранятся lastMessage и lastMessageTime для каждого чата)
             usersRef.child(currentUser.uid).child('chats').on('value', (snapshot) => {
-                const chatIds = snapshot.val() || {};
-                renderChatsList(Object.keys(chatIds));
+                const chatsData = snapshot.val() || {}; // { chatId: { lastMessage, lastMessageTime } }
+                renderChatsList(chatsData);
             });
         }
 
         // ========== ОТОБРАЖЕНИЕ СПИСКА ЧАТОВ ==========
-        async function renderChatsList(chatIds) {
+        async function renderChatsList(chatsData) {
+            const chatIds = Object.keys(chatsData);
             if (chatIds.length === 0) {
                 chatsList.innerHTML = '<div class="text-muted text-center py-3">У вас пока нет чатов. Нажмите на пользователя, чтобы начать диалог.</div>';
                 return;
@@ -322,18 +326,23 @@
 
             let html = '';
             for (const chatId of chatIds) {
+                // Получаем данные чата из chatsData (последнее сообщение)
+                const chatInfo = chatsData[chatId];
+                const lastMessage = chatInfo?.lastMessage || 'Нет сообщений';
+                
+                // Получаем данные о чате, чтобы узнать участников
                 const chatSnapshot = await chatsRef.child(chatId).once('value');
                 const chatData = chatSnapshot.val();
-                
                 if (!chatData) continue;
                 
+                // Находим собеседника
                 const otherParticipantId = Object.keys(chatData.participants || {}).find(id => id !== currentUser.uid);
                 if (!otherParticipantId) continue;
                 
+                // Получаем имя собеседника
                 const userSnapshot = await usersRef.child(otherParticipantId).once('value');
                 const userData = userSnapshot.val();
                 
-                const lastMessage = chatData.lastMessage || 'Нет сообщений';
                 const isActive = chatId === currentChatId ? 'active' : '';
                 
                 html += `
@@ -402,6 +411,7 @@
             const user1Chats = await usersRef.child(uid1).child('chats').once('value');
             const user1ChatIds = user1Chats.val() || {};
             
+            // Проверяем, есть ли уже общий чат
             for (const chatId of Object.keys(user1ChatIds)) {
                 const chatSnapshot = await chatsRef.child(chatId).once('value');
                 const chatData = chatSnapshot.val();
@@ -411,8 +421,10 @@
                 }
             }
             
+            // Создаём новый чат
             const newChatRef = chatsRef.push();
             const chatId = newChatRef.key;
+            const timestamp = firebase.database.ServerValue.TIMESTAMP;
             
             const chatData = {
                 participants: {
@@ -420,15 +432,16 @@
                     [uid2]: true
                 },
                 type: 'private',
-                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                createdAt: timestamp,
                 lastMessage: '',
-                lastMessageTime: firebase.database.ServerValue.TIMESTAMP
+                lastMessageTime: timestamp
             };
             
             await newChatRef.set(chatData);
             
-            await usersRef.child(uid1).child('chats').child(chatId).set(true);
-            await usersRef.child(uid2).child('chats').child(chatId).set(true);
+            // Добавляем чат в профили пользователей с пустым последним сообщением
+            await usersRef.child(uid1).child('chats').child(chatId).set({ lastMessage: '', lastMessageTime: timestamp });
+            await usersRef.child(uid2).child('chats').child(chatId).set({ lastMessage: '', lastMessageTime: timestamp });
             
             return chatId;
         }
@@ -436,6 +449,7 @@
         // ========== ОТКРЫТИЕ ЧАТА ==========
         function openChat(chatId, otherUserId, otherUserName) {
             currentChatId = chatId;
+            currentOtherUserId = otherUserId;
             
             currentChatHeader.innerHTML = `<h5 class="mb-0">Чат с ${otherUserName}</h5>`;
             messageInputContainer.style.display = 'block';
@@ -445,11 +459,13 @@
                 messagesRef.child(currentChatId).off('child_added', messagesListener);
             }
             
+            // Подписываемся на новые сообщения в этом чате
             messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snapshot) => {
                 const message = snapshot.val();
                 displayMessage(message);
             });
             
+            // Подсвечиваем активный чат в списке
             document.querySelectorAll('.chat-item').forEach(item => {
                 if (item.dataset.chatId === chatId) {
                     item.classList.add('active');
@@ -486,7 +502,7 @@
 
         // ========== ОТПРАВКА СООБЩЕНИЯ ==========
         async function sendMessage() {
-            if (!currentUser || !currentChatId) {
+            if (!currentUser || !currentChatId || !currentOtherUserId) {
                 alert('Чат не выбран');
                 return;
             }
@@ -494,18 +510,32 @@
             const text = messageInput.value.trim();
             if (text === '') return;
             
+            const timestamp = firebase.database.ServerValue.TIMESTAMP;
+            
             const messageData = {
                 senderId: currentUser.uid,
                 senderName: currentUser.displayName || currentUser.email,
                 text: text,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
+                timestamp: timestamp
             };
             
+            // Сохраняем сообщение
             await messagesRef.child(currentChatId).push(messageData);
             
+            // Обновляем информацию о последнем сообщении в самом чате
             await chatsRef.child(currentChatId).update({
                 lastMessage: text,
-                lastMessageTime: firebase.database.ServerValue.TIMESTAMP
+                lastMessageTime: timestamp
+            });
+            
+            // Обновляем lastMessage в профилях обоих участников (чтобы список чатов обновлялся)
+            await usersRef.child(currentUser.uid).child('chats').child(currentChatId).update({
+                lastMessage: text,
+                lastMessageTime: timestamp
+            });
+            await usersRef.child(currentOtherUserId).child('chats').child(currentChatId).update({
+                lastMessage: text,
+                lastMessageTime: timestamp
             });
             
             messageInput.value = '';
