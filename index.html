@@ -562,6 +562,7 @@
             let messagesListener = null;
             let chatListeners = {};
             let userStatusListener = null;
+            let typingListener = null; // слушатель печатания
             let typingTimeout = null;
 
             // Хранилище всех пользователей для поиска
@@ -1044,6 +1045,10 @@
                         userStatusListener.off();
                         userStatusListener = null;
                     }
+                    if (typingListener) {
+                        typingListener.off();
+                        typingListener = null;
+                    }
                     currentUser = null;
                     currentOtherUserId = null;
                     lastOpenedChat = {};
@@ -1263,48 +1268,63 @@
             }
 
             function openChat(chatId, type, displayName, otherUid) {
+                // Отключаем старые слушатели
+                if (messagesListener) {
+                    messagesRef.child(currentChatId).off('child_added', messagesListener);
+                    messagesListener = null;
+                }
+                if (userStatusListener) {
+                    userStatusListener.off();
+                    userStatusListener = null;
+                }
+                if (typingListener) {
+                    typingListener.off();
+                    typingListener = null;
+                }
+
                 currentChatId = chatId;
                 currentChatType = type;
                 currentOtherUserId = otherUid || null;
                 lastOpenedChat[chatId] = Date.now();
 
+                // Сбрасываем интерфейс
                 if (chatHeaderName) {
                     chatHeaderName.textContent = displayName;
-                    if (type === 'private' && otherUid) {
-                        updateChatHeaderStatus(otherUid);
-                        if (userStatusListener) {
-                            userStatusListener.off();
-                        }
-                        const otherUserRef = usersRef.child(otherUid);
-                        userStatusListener = otherUserRef.on('value', (snap) => {
-                            const user = snap.val();
-                            if (user) updateChatHeaderStatus(otherUid);
-                        });
-                        // Слушатель печатает
-                        const typingRef = db.ref(`chats/${chatId}/typing/${otherUid}`);
-                        typingRef.on('value', (snap) => {
-                            if (snap.val() === true) {
-                                typingIndicator.textContent = 'печатает...';
-                            } else {
-                                typingIndicator.textContent = '';
-                            }
-                        });
-                    } else {
-                        if (currentChatStatus) currentChatStatus.innerHTML = '';
-                        if (typingIndicator) typingIndicator.textContent = '';
-                        if (userStatusListener) {
-                            userStatusListener.off();
-                            userStatusListener = null;
-                        }
-                    }
+                }
+                if (currentChatStatus) {
+                    currentChatStatus.innerHTML = '';
+                }
+                if (typingIndicator) {
+                    typingIndicator.textContent = '';
+                }
+                if (messagesArea) {
+                    messagesArea.innerHTML = '';
                 }
 
-                if (messageInputContainer) messageInputContainer.style.display = 'block';
-                if (messagesArea) messagesArea.innerHTML = '';
-
-                if (messagesListener) {
-                    messagesRef.child(currentChatId).off('child_added', messagesListener);
+                if (type === 'private' && otherUid) {
+                    updateChatHeaderStatus(otherUid);
+                    // Слушатель статуса онлайн
+                    const otherUserRef = usersRef.child(otherUid);
+                    userStatusListener = otherUserRef.on('value', (snap) => {
+                        const user = snap.val();
+                        if (user) updateChatHeaderStatus(otherUid);
+                    });
+                    // Слушатель печатания
+                    const typingRef = db.ref(`chats/${chatId}/typing/${otherUid}`);
+                    typingListener = typingRef.on('value', (snap) => {
+                        if (snap.val() === true) {
+                            typingIndicator.textContent = 'печатает...';
+                        } else {
+                            typingIndicator.textContent = '';
+                        }
+                    });
                 }
+
+                if (messageInputContainer) {
+                    messageInputContainer.style.display = 'block';
+                }
+
+                // Слушатель новых сообщений
                 messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snap) => {
                     const msg = snap.val();
                     displayMessage(msg);
@@ -1321,9 +1341,13 @@
                     }
                 });
 
+                // Подсветка активного чата в списке
                 document.querySelectorAll('.chat-item').forEach(el => {
-                    if (el.dataset.chatid === chatId) el.classList.add('active');
-                    else el.classList.remove('active');
+                    if (el.dataset.chatid === chatId) {
+                        el.classList.add('active');
+                    } else {
+                        el.classList.remove('active');
+                    }
                 });
             }
 
