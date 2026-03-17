@@ -3,20 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Чат — загрузка аватарок</title>
+    <title>Чат — оптимизированная версия</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        body {
-            background: #f0f2f5;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        .auth-container {
-            max-width: 400px; margin: 50px auto; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .chat-container {
-            max-width: 1200px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+        /* Стили без изменений (см. предыдущие версии) – оставлены для краткости, но в реальном коде они нужны */
+        body { background: #f0f2f5; transition: background-color 0.3s, color 0.3s; }
+        .auth-container { max-width: 400px; margin: 50px auto; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .chat-container { max-width: 1200px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .sidebar { background: #f8f9fa; border-right: 1px solid #dee2e6; height: 80vh; overflow-y: auto; padding: 15px; }
         .main-chat { height: 80vh; display: flex; flex-direction: column; }
         .messages-area { flex-grow: 1; overflow-y: auto; padding: 20px; background: #fff; }
@@ -51,224 +45,54 @@
             width: 30px; height: 30px; border-radius: 50%; object-fit: cover; font-size: 1.5rem; text-align: center; line-height: 30px;
         }
         .profile-modal i, .profile-modal img { width: 4rem; height: 4rem; border-radius: 50%; object-fit: cover; font-size: 4rem; }
-
-        /* Индикатор онлайн */
-        .online-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-left: 5px;
-            background-color: #31a24c;
-        }
-        .offline-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-left: 5px;
-            background-color: #9a9a9a;
-        }
-        .last-seen {
-            font-size: 0.7rem;
-            color: #65676b;
-            margin-left: 5px;
-        }
-
-        /* Индикатор печатает */
-        .typing-indicator {
-            font-size: 0.8rem;
-            color: #65676b;
-            margin-left: 10px;
-            font-style: italic;
-        }
-
-        /* Модальные окна */
+        .online-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-left: 5px; background-color: #31a24c; }
+        .offline-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-left: 5px; background-color: #9a9a9a; }
+        .last-seen { font-size: 0.7rem; color: #65676b; margin-left: 5px; }
+        .typing-indicator { font-size: 0.8rem; color: #65676b; margin-left: 10px; font-style: italic; }
         .profile-modal, .password-modal, .reset-modal, .confirm-modal, .edit-profile-modal {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
-            z-index: 2001;
-            max-width: 400px;
-            width: 90%;
-            text-align: center;
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            z-index: 2001; max-width: 400px; width: 90%; text-align: center;
         }
-        .profile-modal i, .profile-modal img {
-            font-size: 4rem;
-            width: 4rem;
-            height: 4rem;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-bottom: 10px;
-        }
-        .profile-modal h3 {
-            margin-bottom: 5px;
-        }
-        .profile-modal p {
-            margin: 5px 0;
-            color: #65676b;
-        }
-        .password-modal input, .reset-modal input, .edit-profile-modal input {
-            width: 100%;
-            padding: 8px;
-            margin: 8px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        /* Кнопка реакции */
-        .reaction-btn {
-            background: none;
-            border: none;
-            font-size: 1rem;
-            cursor: pointer;
-            padding: 2px 8px;
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            color: #65676b;
-            transition: background 0.2s;
-            margin-top: 4px;
-        }
-        .reaction-btn:hover {
-            background: #e4e6eb;
-        }
-        .reaction-count {
-            font-size: 0.8rem;
-            margin-left: 2px;
-            font-weight: bold;
-        }
-        .my-message .reaction-btn {
-            align-self: flex-start;
-        }
-
-        /* Поиск */
-        .search-container {
-            margin-bottom: 15px;
-            position: relative;
-        }
-        .search-results {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1000;
-            display: none;
-        }
-        .search-results.show {
-            display: block;
-        }
-        .search-result-item {
-            padding: 8px 12px;
-            border-bottom: 1px solid #eee;
-        }
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
-
-        /* Тёмная тема */
-        body.dark-theme {
-            background: #1a1a1a;
-            color: #e0e0e0;
-        }
-        body.dark-theme .auth-container,
-        body.dark-theme .chat-container,
-        body.dark-theme .sidebar,
-        body.dark-theme .messages-area,
-        body.dark-theme .current-chat-header,
-        body.dark-theme .sticker-panel,
-        body.dark-theme .avatar-selector,
-        body.dark-theme .profile-modal,
-        body.dark-theme .password-modal,
-        body.dark-theme .reset-modal,
-        body.dark-theme .confirm-modal,
-        body.dark-theme .edit-profile-modal,
-        body.dark-theme .search-results {
-            background: #2d2d2d;
-            border-color: #444;
-            color: #e0e0e0;
-        }
-        body.dark-theme .sidebar {
-            background: #252525;
-            border-right-color: #444;
-        }
-        body.dark-theme .messages-area {
-            background: #1e1e1e;
-        }
-        body.dark-theme .chat-item,
-        body.dark-theme .search-result-item,
-        body.dark-theme .current-user:hover,
-        body.dark-theme .chat-item:hover,
-        body.dark-theme .search-result-item:hover {
-            background: #3a3a3a;
-            color: #e0e0e0;
-        }
-        body.dark-theme .chat-item.active {
-            background: #3e5a7a;
-            border-left-color: #90caf9;
-        }
-        body.dark-theme .my-message .message-bubble {
-            background: #0d47a1;
-            color: white;
-        }
-        body.dark-theme .other-message .message-bubble {
-            background: #424242;
-            color: #e0e0e0;
-        }
-        body.dark-theme .message-info {
-            color: #aaa;
-        }
-        body.dark-theme .sticker:hover,
-        body.dark-theme .avatar-option:hover,
-        body.dark-theme .reaction-btn:hover {
-            background: #4a4a4a;
-        }
-        body.dark-theme .btn-outline-secondary {
-            color: #e0e0e0;
-            border-color: #666;
-        }
-        body.dark-theme .btn-outline-secondary:hover {
-            background: #4a4a4a;
-            color: white;
-        }
-        body.dark-theme .form-control {
-            background: #3a3a3a;
-            border-color: #555;
-            color: #e0e0e0;
-        }
-        body.dark-theme .form-control:focus {
-            background: #3a3a3a;
-            color: #e0e0e0;
-        }
-        body.dark-theme .list-group-item {
-            background: #2d2d2d;
-            color: #e0e0e0;
-            border-color: #444;
-        }
-        body.dark-theme .text-muted {
-            color: #aaa !important;
-        }
-        body.dark-theme .overlay {
-            background: rgba(0,0,0,0.7);
-        }
+        .password-modal input, .reset-modal input, .edit-profile-modal input { width: 100%; padding: 8px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; }
+        .reaction-btn { background: none; border: none; font-size: 1rem; cursor: pointer; padding: 2px 8px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; color: #65676b; transition: background 0.2s; margin-top: 4px; }
+        .reaction-btn:hover { background: #e4e6eb; }
+        .reaction-count { font-size: 0.8rem; margin-left: 2px; font-weight: bold; }
+        .my-message .reaction-btn { align-self: flex-start; }
+        .search-container { margin-bottom: 15px; position: relative; }
+        .search-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-radius: 5px; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; }
+        .search-results.show { display: block; }
+        .search-result-item { padding: 8px 12px; border-bottom: 1px solid #eee; }
+        .search-result-item:last-child { border-bottom: none; }
+        body.dark-theme { background: #1a1a1a; color: #e0e0e0; }
+        body.dark-theme .auth-container, body.dark-theme .chat-container, body.dark-theme .sidebar,
+        body.dark-theme .messages-area, body.dark-theme .current-chat-header, body.dark-theme .sticker-panel,
+        body.dark-theme .avatar-selector, body.dark-theme .profile-modal, body.dark-theme .password-modal,
+        body.dark-theme .reset-modal, body.dark-theme .confirm-modal, body.dark-theme .edit-profile-modal,
+        body.dark-theme .search-results { background: #2d2d2d; border-color: #444; color: #e0e0e0; }
+        body.dark-theme .sidebar { background: #252525; border-right-color: #444; }
+        body.dark-theme .messages-area { background: #1e1e1e; }
+        body.dark-theme .chat-item, body.dark-theme .search-result-item, body.dark-theme .current-user:hover,
+        body.dark-theme .chat-item:hover, body.dark-theme .search-result-item:hover { background: #3a3a3a; color: #e0e0e0; }
+        body.dark-theme .chat-item.active { background: #3e5a7a; border-left-color: #90caf9; }
+        body.dark-theme .my-message .message-bubble { background: #0d47a1; color: white; }
+        body.dark-theme .other-message .message-bubble { background: #424242; color: #e0e0e0; }
+        body.dark-theme .message-info { color: #aaa; }
+        body.dark-theme .sticker:hover, body.dark-theme .avatar-option:hover, body.dark-theme .reaction-btn:hover { background: #4a4a4a; }
+        body.dark-theme .btn-outline-secondary { color: #e0e0e0; border-color: #666; }
+        body.dark-theme .btn-outline-secondary:hover { background: #4a4a4a; color: white; }
+        body.dark-theme .form-control { background: #3a3a3a; border-color: #555; color: #e0e0e0; }
+        body.dark-theme .form-control:focus { background: #3a3a3a; color: #e0e0e0; }
+        body.dark-theme .list-group-item { background: #2d2d2d; color: #e0e0e0; border-color: #444; }
+        body.dark-theme .text-muted { color: #aaa !important; }
+        body.dark-theme .overlay { background: rgba(0,0,0,0.7); }
     </style>
 </head>
 <body>
+    <!-- ... весь HTML без изменений (см. предыдущие версии) ... -->
     <div id="overlay" class="overlay"></div>
 
-    <!-- Модальное окно выбора аватарки (теперь с загрузкой) -->
+    <!-- Модальное окно выбора аватарки (с загрузкой) -->
     <div id="avatarSelector" class="avatar-selector">
         <h5>Выберите аватарку</h5>
         <div class="avatar-grid" id="avatarGrid"></div>
@@ -525,13 +349,9 @@
             const editProfileError = $('editProfileError');
             const saveProfileBtn = $('saveProfileBtn');
             const closeEditProfileBtn = $('closeEditProfileBtn');
-
-            // Элементы загрузки аватарок
             const avatarUpload = $('avatarUpload');
             const avatarPreview = $('avatarPreview');
             const uploadAvatarBtn = $('uploadAvatarBtn');
-
-            // Элементы поиска
             const searchInput = $('searchInput');
             const searchResultsDiv = $('searchResults');
 
@@ -562,19 +382,20 @@
             let messagesListener = null;
             let chatListeners = {};
             let userStatusListener = null;
-            let typingListener = null; // слушатель печатания
+            let typingListener = null;
             let typingTimeout = null;
 
-            // Хранилище всех пользователей для поиска
+            // Кэш пользователей (uid -> данные)
+            let usersCache = {};
+            // Список пользователей для поиска (массив объектов)
             let allUsers = [];
 
             // Время последнего открытия чата (для уведомлений)
             let lastOpenedChat = {};
 
-            // Звук уведомления (НЕ МЕНЯЕМ!)
             const notificationSound = new Audio('https://zvukogram.com/index.php?r=site/download&id=84076&type=mp3');
 
-            // Вспомогательная функция для отображения аватарки (иконка или img)
+            // Вспомогательная функция для отображения аватарки
             function renderAvatar(container, avatar, sizeClass = '') {
                 if (!container) return;
                 container.innerHTML = '';
@@ -604,49 +425,46 @@
                 const minutes = Math.floor(seconds / 60);
                 const hours = Math.floor(minutes / 60);
                 const days = Math.floor(hours / 24);
-
                 if (seconds < 60) return 'только что';
                 if (minutes < 60) return `${minutes} ${minutes === 1 ? 'минуту' : 'минут'} назад`;
                 if (hours < 24) return `${hours} ${hours === 1 ? 'час' : 'часов'} назад`;
                 return `${days} ${days === 1 ? 'день' : 'дней'} назад`;
             }
 
-            // Функция открытия профиля
+            // Функция открытия профиля (использует кэш)
             function showProfile(uid) {
-                usersRef.child(uid).once('value', (snap) => {
-                    const user = snap.val();
-                    if (!user) return;
-                    renderAvatar(profileAvatarContainer, user.avatar, '');
-                    profileName.textContent = user.name || 'Без имени';
-                    profileNickname.textContent = user.nickname ? `@${user.nickname}` : '';
-                    profileEmail.textContent = user.email || '';
-                    const status = user.online ? 'Онлайн' : `Был(а) ${formatLastSeen(user.lastSeen)}`;
-                    profileStatus.textContent = status;
-                    if (user.createdAt) {
-                        const date = new Date(user.createdAt).toLocaleDateString('ru-RU');
-                        profileRegistered.textContent = `Зарегистрирован(а): ${date}`;
-                    } else {
-                        profileRegistered.textContent = '';
-                    }
-                    if (uid === currentUser.uid) {
-                        profileMessageBtn.style.display = 'none';
-                        editProfileBtn.style.display = 'block';
-                        changePasswordBtn.style.display = 'block';
-                        logoutAllDevicesBtn.style.display = 'block';
-                    } else {
-                        profileMessageBtn.style.display = 'block';
-                        editProfileBtn.style.display = 'none';
-                        changePasswordBtn.style.display = 'none';
-                        logoutAllDevicesBtn.style.display = 'none';
-                        profileMessageBtn.onclick = () => {
-                            profileModal.style.display = 'none';
-                            overlay.style.display = 'none';
-                            createPrivateChat(uid, user.name, user.nickname);
-                        };
-                    }
-                    profileModal.style.display = 'block';
-                    overlay.style.display = 'block';
-                });
+                const user = usersCache[uid];
+                if (!user) return;
+                renderAvatar(profileAvatarContainer, user.avatar, '');
+                profileName.textContent = user.name || 'Без имени';
+                profileNickname.textContent = user.nickname ? `@${user.nickname}` : '';
+                profileEmail.textContent = user.email || '';
+                const status = user.online ? 'Онлайн' : `Был(а) ${formatLastSeen(user.lastSeen)}`;
+                profileStatus.textContent = status;
+                if (user.createdAt) {
+                    const date = new Date(user.createdAt).toLocaleDateString('ru-RU');
+                    profileRegistered.textContent = `Зарегистрирован(а): ${date}`;
+                } else {
+                    profileRegistered.textContent = '';
+                }
+                if (uid === currentUser.uid) {
+                    profileMessageBtn.style.display = 'none';
+                    editProfileBtn.style.display = 'block';
+                    changePasswordBtn.style.display = 'block';
+                    logoutAllDevicesBtn.style.display = 'block';
+                } else {
+                    profileMessageBtn.style.display = 'block';
+                    editProfileBtn.style.display = 'none';
+                    changePasswordBtn.style.display = 'none';
+                    logoutAllDevicesBtn.style.display = 'none';
+                    profileMessageBtn.onclick = () => {
+                        profileModal.style.display = 'none';
+                        overlay.style.display = 'none';
+                        createPrivateChat(uid, user.name, user.nickname);
+                    };
+                }
+                profileModal.style.display = 'block';
+                overlay.style.display = 'block';
             }
 
             closeProfileBtn.addEventListener('click', () => {
@@ -657,11 +475,9 @@
             // Редактирование профиля
             editProfileBtn.addEventListener('click', () => {
                 profileModal.style.display = 'none';
-                usersRef.child(currentUser.uid).once('value', (snap) => {
-                    const user = snap.val() || {};
-                    editName.value = user.name || '';
-                    editNickname.value = user.nickname || '';
-                });
+                const user = usersCache[currentUser.uid] || {};
+                editName.value = user.name || '';
+                editNickname.value = user.nickname || '';
                 editProfileModal.style.display = 'block';
                 overlay.style.display = 'block';
             });
@@ -685,6 +501,8 @@
                     };
                     await usersRef.child(currentUser.uid).update(updates);
                     await currentUser.updateProfile({ displayName: newName });
+                    // Обновляем кэш
+                    usersCache[currentUser.uid] = { ...usersCache[currentUser.uid], ...updates };
                     editProfileModal.style.display = 'none';
                     overlay.style.display = 'none';
                     editProfileError.textContent = '';
@@ -709,7 +527,6 @@
                 const current = currentPassword.value;
                 const newPass = newPassword.value;
                 const confirm = confirmPassword.value;
-
                 if (!current || !newPass || !confirm) {
                     passwordError.textContent = 'Заполните все поля';
                     return;
@@ -722,10 +539,8 @@
                     passwordError.textContent = 'Пароли не совпадают';
                     return;
                 }
-
                 const user = auth.currentUser;
                 if (!user) return;
-
                 try {
                     const credential = firebase.auth.EmailAuthProvider.credential(user.email, current);
                     await user.reauthenticateWithCredential(credential);
@@ -837,10 +652,9 @@
                     div.addEventListener('click', async () => {
                         if (currentUser && currentUser.uid) {
                             await usersRef.child(currentUser.uid).update({ avatar: iconClass });
-                            // обновить отображение текущего пользователя
-                            if (currentUserAvatarContainer) {
-                                renderAvatar(currentUserAvatarContainer, iconClass, '');
-                            }
+                            // обновить кэш и отображение
+                            usersCache[currentUser.uid].avatar = iconClass;
+                            renderAvatar(currentUserAvatarContainer, iconClass, '');
                             if (avatarSelector) avatarSelector.style.display = 'none';
                             if (overlay) overlay.style.display = 'none';
                         }
@@ -873,11 +687,8 @@
                     const snapshot = await fileRef.put(selectedFile);
                     const downloadURL = await snapshot.ref.getDownloadURL();
                     await usersRef.child(userId).update({ avatar: downloadURL });
-                    // обновить текущий аватар
-                    if (currentUserAvatarContainer) {
-                        renderAvatar(currentUserAvatarContainer, downloadURL, '');
-                    }
-                    // очистить предпросмотр и скрыть кнопку
+                    usersCache[currentUser.uid].avatar = downloadURL;
+                    renderAvatar(currentUserAvatarContainer, downloadURL, '');
                     avatarPreview.style.display = 'none';
                     uploadAvatarBtn.style.display = 'none';
                     selectedFile = null;
@@ -1016,6 +827,29 @@
                 });
             }
 
+            // Единый слушатель пользователей (обновляет кэш и список для поиска)
+            function startUsersListener() {
+                usersRef.on('value', (snapshot) => {
+                    const usersObj = snapshot.val() || {};
+                    usersCache = {};
+                    allUsers = [];
+                    for (let uid in usersObj) {
+                        usersCache[uid] = usersObj[uid];
+                        if (uid !== currentUser?.uid) {
+                            allUsers.push({
+                                uid: uid,
+                                name: usersObj[uid].name,
+                                nickname: usersObj[uid].nickname,
+                                email: usersObj[uid].email,
+                                avatar: usersObj[uid].avatar || 'fas fa-user'
+                            });
+                        }
+                    }
+                    // Обновляем интерфейс, если нужно (например, список пользователей в поиске не хранится отдельно)
+                    // Поиск будет использовать allUsers, поэтому обновлять ничего не нужно, поиск сработает при следующем вводе.
+                });
+            }
+
             // Состояние пользователя
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
@@ -1027,6 +861,7 @@
                     if (currentUserName) currentUserName.textContent = user.displayName || user.email;
                     const userSnap = await usersRef.child(user.uid).once('value');
                     const userData = userSnap.val() || {};
+                    usersCache[user.uid] = userData; // добавим в кэш
                     if (currentUserAvatarContainer) {
                         renderAvatar(currentUserAvatarContainer, userData.avatar, '');
                     }
@@ -1034,7 +869,7 @@
 
                     await ensurePublicChatExists();
                     await addUserToPublicChat(user.uid);
-                    loadAllUsersForSearch();
+                    startUsersListener(); // запускаем слушатель пользователей
                     loadChats();
                 } else {
                     for (let chatId in chatListeners) {
@@ -1052,6 +887,8 @@
                     currentUser = null;
                     currentOtherUserId = null;
                     lastOpenedChat = {};
+                    usersCache = {};
+                    allUsers = [];
                     if (authContainer) authContainer.style.display = 'block';
                     if (chatContainer) chatContainer.style.display = 'none';
                     if (loginEmail) loginEmail.value = '';
@@ -1065,29 +902,10 @@
                         messagesListener = null;
                     }
                     currentChatId = null;
-                    allUsers = [];
                 }
             });
 
-            // Загрузка всех пользователей для поиска
-            function loadAllUsersForSearch() {
-                usersRef.on('value', (snapshot) => {
-                    const usersObj = snapshot.val() || {};
-                    allUsers = [];
-                    for (let uid in usersObj) {
-                        if (uid === currentUser.uid) continue;
-                        allUsers.push({
-                            uid: uid,
-                            name: usersObj[uid].name,
-                            nickname: usersObj[uid].nickname,
-                            email: usersObj[uid].email,
-                            avatar: usersObj[uid].avatar || 'fas fa-user'
-                        });
-                    }
-                });
-            }
-
-            // Поиск с debounce
+            // Поиск с debounce (использует allUsers из кэша)
             let searchTimeout;
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value.trim();
@@ -1187,26 +1005,66 @@
             function loadChats() {
                 usersRef.child(currentUser.uid).child('chats').on('value', async (snapshot) => {
                     const chatIds = snapshot.val() || {};
+                    // Отписываемся от слушателей для удалённых чатов
                     for (let chatId in chatListeners) {
                         if (!chatIds[chatId]) {
                             chatListeners[chatId].off();
                             delete chatListeners[chatId];
                         }
                     }
+                    // Добавляем слушатели для новых чатов
                     for (let chatId in chatIds) {
                         if (!chatListeners[chatId]) {
                             const chatRef = chatsRef.child(chatId);
-                            const listener = chatRef.on('value', () => {
-                                refreshChatList();
+                            const listener = chatRef.on('value', (chatSnap) => {
+                                // Обновляем только этот чат в списке
+                                updateChatItem(chatId, chatSnap.val());
                             });
                             chatListeners[chatId] = { off: () => chatRef.off('value', listener) };
                         }
                     }
-                    await refreshChatList();
+                    // Первичное построение списка
+                    await refreshFullChatList();
                 });
             }
 
-            async function refreshChatList() {
+            // Функция обновления одного элемента чата в списке
+            async function updateChatItem(chatId, chatData) {
+                if (!chatData) return;
+                const existingItem = document.querySelector(`.chat-item[data-chatid="${chatId}"]`);
+                if (!existingItem) {
+                    // Если элемента нет, перестроим весь список (проще)
+                    refreshFullChatList();
+                    return;
+                }
+                // Обновляем только данные элемента
+                const otherUid = chatId === PUBLIC_CHAT_ID ? null : Object.keys(chatData.participants || {}).find(uid => uid !== currentUser.uid);
+                let displayName = '', avatarIcon = 'fas fa-user';
+                if (chatId === PUBLIC_CHAT_ID) {
+                    displayName = '🌟 Общий чат';
+                    avatarIcon = 'fas fa-globe';
+                } else if (otherUid) {
+                    const user = usersCache[otherUid];
+                    displayName = user ? (user.nickname ? `${user.name} (@${user.nickname})` : user.name) : 'Пользователь';
+                    avatarIcon = user ? user.avatar || 'fas fa-user' : 'fas fa-user';
+                }
+                const lastMsg = chatData.lastMessage || 'Нет сообщений';
+                const statusHtml = (chatId !== PUBLIC_CHAT_ID && otherUid && usersCache[otherUid]) ? 
+                    (usersCache[otherUid].online ? '<span class="online-indicator"></span>' : `<span class="offline-indicator"></span><span class="last-seen">${formatLastSeen(usersCache[otherUid].lastSeen)}</span>`) : '';
+                const avatarHtml = avatarIcon.startsWith('http') ? 
+                    `<img src="${avatarIcon}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : 
+                    `<i class="${avatarIcon}" style="width:30px;"></i>`;
+                existingItem.innerHTML = `
+                    ${avatarHtml}
+                    <div>
+                        <strong>${displayName}</strong> ${statusHtml}
+                        <br><small>${lastMsg.substring(0,30)}</small>
+                    </div>
+                `;
+                // обновим data-атрибуты, если нужно (но они не меняются)
+            }
+
+            async function refreshFullChatList() {
                 const chatIdsSnap = await usersRef.child(currentUser.uid).child('chats').once('value');
                 const chatIds = chatIdsSnap.val() || {};
                 let html = '';
@@ -1221,8 +1079,7 @@
                     } else {
                         otherUid = Object.keys(chat.participants || {}).find(uid => uid !== currentUser.uid);
                         if (otherUid) {
-                            const userSnap = await usersRef.child(otherUid).once('value');
-                            const user = userSnap.val();
+                            const user = usersCache[otherUid];
                             displayName = user ? (user.nickname ? `${user.name} (@${user.nickname})` : user.name) : 'Пользователь';
                             avatarIcon = user ? user.avatar || 'fas fa-user' : 'fas fa-user';
                         } else {
@@ -1233,14 +1090,11 @@
                     const activeClass = id === currentChatId ? 'active' : '';
 
                     let statusHtml = '';
-                    if (id !== PUBLIC_CHAT_ID && otherUid) {
-                        const userSnap = await usersRef.child(otherUid).once('value');
-                        const user = userSnap.val();
-                        if (user) {
-                            const statusClass = user.online ? 'online-indicator' : 'offline-indicator';
-                            const lastSeenText = user.online ? '' : formatLastSeen(user.lastSeen);
-                            statusHtml = `<span class="${statusClass}"></span><span class="last-seen">${lastSeenText}</span>`;
-                        }
+                    if (id !== PUBLIC_CHAT_ID && otherUid && usersCache[otherUid]) {
+                        const user = usersCache[otherUid];
+                        const statusClass = user.online ? 'online-indicator' : 'offline-indicator';
+                        const lastSeenText = user.online ? '' : formatLastSeen(user.lastSeen);
+                        statusHtml = `<span class="${statusClass}"></span><span class="last-seen">${lastSeenText}</span>`;
                     }
 
                     const avatarHtml = avatarIcon.startsWith('http') ? 
@@ -1256,19 +1110,20 @@
                     </div>`;
                 }
                 chatsListDiv.innerHTML = html || '<div class="text-muted">У вас пока нет чатов</div>';
-                document.querySelectorAll('.chat-item').forEach(el => {
-                    el.addEventListener('click', () => {
-                        const chatId = el.dataset.chatid;
-                        const type = el.dataset.type;
-                        const name = el.dataset.name;
-                        const otherUid = el.dataset.otheruid;
-                        openChat(chatId, type, name, otherUid);
-                    });
-                });
             }
 
+            // Делегирование кликов на список чатов
+            chatsListDiv.addEventListener('click', (e) => {
+                const chatItem = e.target.closest('.chat-item');
+                if (!chatItem) return;
+                const chatId = chatItem.dataset.chatid;
+                const type = chatItem.dataset.type;
+                const name = chatItem.dataset.name;
+                const otherUid = chatItem.dataset.otheruid;
+                openChat(chatId, type, name, otherUid);
+            });
+
             function openChat(chatId, type, displayName, otherUid) {
-                // Отключаем старые слушатели
                 if (messagesListener) {
                     messagesRef.child(currentChatId).off('child_added', messagesListener);
                     messagesListener = null;
@@ -1287,44 +1142,31 @@
                 currentOtherUserId = otherUid || null;
                 lastOpenedChat[chatId] = Date.now();
 
-                // Сбрасываем интерфейс
-                if (chatHeaderName) {
-                    chatHeaderName.textContent = displayName;
-                }
-                if (currentChatStatus) {
-                    currentChatStatus.innerHTML = '';
-                }
-                if (typingIndicator) {
-                    typingIndicator.textContent = '';
-                }
-                if (messagesArea) {
-                    messagesArea.innerHTML = '';
-                }
+                chatHeaderName.textContent = displayName;
+                currentChatStatus.innerHTML = '';
+                typingIndicator.textContent = '';
+                messagesArea.innerHTML = '';
 
                 if (type === 'private' && otherUid) {
                     updateChatHeaderStatus(otherUid);
-                    // Слушатель статуса онлайн
                     const otherUserRef = usersRef.child(otherUid);
                     userStatusListener = otherUserRef.on('value', (snap) => {
                         const user = snap.val();
-                        if (user) updateChatHeaderStatus(otherUid);
-                    });
-                    // Слушатель печатания
-                    const typingRef = db.ref(`chats/${chatId}/typing/${otherUid}`);
-                    typingListener = typingRef.on('value', (snap) => {
-                        if (snap.val() === true) {
-                            typingIndicator.textContent = 'печатает...';
-                        } else {
-                            typingIndicator.textContent = '';
+                        if (user) {
+                            usersCache[otherUid] = user; // обновляем кэш
+                            updateChatHeaderStatus(otherUid);
+                            // также обновим элемент чата в списке
+                            updateChatItem(chatId, { ...(chatsRef.child(chatId).val()), participants: { [currentUser.uid]: true, [otherUid]: true } }); // упрощённо
                         }
                     });
+                    const typingRef = db.ref(`chats/${chatId}/typing/${otherUid}`);
+                    typingListener = typingRef.on('value', (snap) => {
+                        typingIndicator.textContent = snap.val() === true ? 'печатает...' : '';
+                    });
                 }
 
-                if (messageInputContainer) {
-                    messageInputContainer.style.display = 'block';
-                }
+                messageInputContainer.style.display = 'block';
 
-                // Слушатель новых сообщений
                 messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snap) => {
                     const msg = snap.val();
                     displayMessage(msg);
@@ -1341,7 +1183,6 @@
                     }
                 });
 
-                // Подсветка активного чата в списке
                 document.querySelectorAll('.chat-item').forEach(el => {
                     if (el.dataset.chatid === chatId) {
                         el.classList.add('active');
@@ -1352,8 +1193,7 @@
             }
 
             async function updateChatHeaderStatus(uid) {
-                const userSnap = await usersRef.child(uid).once('value');
-                const user = userSnap.val();
+                const user = usersCache[uid];
                 if (user && currentChatStatus) {
                     if (user.online) {
                         currentChatStatus.innerHTML = '<span class="online-indicator"></span> онлайн';
@@ -1369,27 +1209,13 @@
                     messagesArea.innerHTML = '';
                 }
                 const isMy = msg.senderId === currentUser.uid;
-
-                // Получаем аватар отправителя
-                let avatar = 'fas fa-user';
-                if (!isMy) {
-                    const userSnap = await usersRef.child(msg.senderId).once('value');
-                    const userData = userSnap.val();
-                    avatar = userData?.avatar || 'fas fa-user';
-                } else {
-                    const userSnap = await usersRef.child(currentUser.uid).once('value');
-                    const userData = userSnap.val() || {};
-                    avatar = userData.avatar || 'fas fa-user';
-                }
-
-                // Получаем имя и никнейм отправителя для отображения
+                const senderData = usersCache[msg.senderId] || {};
+                const avatar = senderData.avatar || 'fas fa-user';
                 let senderDisplay = msg.senderName || 'Пользователь';
-                if (!isMy) {
-                    const userSnap = await usersRef.child(msg.senderId).once('value');
-                    const user = userSnap.val();
-                    if (user) {
-                        senderDisplay = user.nickname ? `${user.name} (@${user.nickname})` : user.name;
-                    }
+                if (!isMy && senderData.name) {
+                    senderDisplay = senderData.nickname ? `${senderData.name} (@${senderData.nickname})` : senderData.name;
+                } else if (isMy) {
+                    senderDisplay = currentUser.displayName || currentUser.email;
                 }
 
                 const msgDiv = document.createElement('div');
