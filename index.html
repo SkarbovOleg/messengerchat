@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Чат — мобильная версия</title>
+    <title>Чат — файлы и изображения</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Все существующие стили остаются без изменений */
         body {
             background: #f0f2f5;
             transition: background-color 0.3s, color 0.3s;
@@ -265,14 +266,12 @@
         }
 
         /* ========== МОБИЛЬНЫЕ УЛУЧШЕНИЯ ========== */
-
-        /* Увеличение кликабельных областей */
         .chat-item, .user-item {
             padding: 15px 12px;
             min-height: 60px;
         }
         button, .btn {
-            min-height: 44px; /* рекомендация для тач-целей */
+            min-height: 44px;
             padding: 10px 16px;
         }
         .btn-sm {
@@ -286,15 +285,12 @@
             padding: 10px;
         }
         .sticker {
-            font-size: 2rem; /* увеличены стикеры */
+            font-size: 2rem;
             padding: 8px;
         }
-
-        /* Мобильная навигация */
         .back-button {
-            display: none; /* по умолчанию скрыта */
+            display: none;
         }
-
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
@@ -319,7 +315,7 @@
                 transform: translateX(0);
             }
             .back-button {
-                display: inline-block; /* показываем на мобильных */
+                display: inline-block;
             }
             .current-chat-header h5 {
                 font-size: 1.1rem;
@@ -328,8 +324,65 @@
                 padding: 10px;
             }
             .message-bubble {
-                max-width: 85%; /* шире на мобильных */
+                max-width: 85%;
             }
+        }
+
+        /* ========== СТИЛИ ДЛЯ ФАЙЛОВ ========== */
+        .file-attachment {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin-top: 5px;
+        }
+        .dark-theme .file-attachment {
+            background: rgba(255,255,255,0.1);
+        }
+        .file-icon {
+            font-size: 2rem;
+        }
+        .file-info {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        .file-name {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .file-size {
+            font-size: 0.8rem;
+            color: #65676b;
+        }
+        .file-download {
+            color: #0084ff;
+            font-size: 1.2rem;
+        }
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        .upload-progress {
+            display: none;
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin: 10px 0;
+        }
+        .upload-progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #0084ff;
+            border-radius: 2px;
+            transition: width 0.2s;
         }
     </style>
 </head>
@@ -468,13 +521,20 @@
                     <div class="text-muted text-center py-5">Выберите чат слева</div>
                 </div>
                 <div id="messageInputContainer" style="display:none; padding:15px; border-top:1px solid #dee2e6; position: relative;">
+                    <!-- Индикатор загрузки файла -->
+                    <div id="uploadProgress" class="upload-progress">
+                        <div id="uploadProgressBar" class="upload-progress-bar"></div>
+                    </div>
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                        <button class="btn btn-outline-secondary" id="fileBtn" type="button" title="Прикрепить файл">📎</button>
+                        <button class="btn btn-outline-secondary" id="stickerBtn" type="button">😊</button>
+                        <input type="text" id="messageInput" class="form-control" placeholder="Введите сообщение..." style="flex-grow:1;">
+                        <button class="btn btn-primary" id="sendButton">Отправить</button>
+                    </div>
+                    <!-- Скрытое поле для выбора файла -->
+                    <input type="file" id="fileInput" style="display: none;">
                     <div id="stickerPanel" class="sticker-panel">
                         <div class="sticker-grid" id="stickerGrid"></div>
-                    </div>
-                    <div class="input-group">
-                        <button class="btn btn-outline-secondary" id="stickerBtn" type="button">😊</button>
-                        <input type="text" id="messageInput" class="form-control" placeholder="Введите сообщение...">
-                        <button class="btn btn-primary" id="sendButton">Отправить</button>
                     </div>
                 </div>
             </div>
@@ -599,9 +659,12 @@
             const uploadAvatarBtn = $('uploadAvatarBtn');
             const searchInput = $('searchInput');
             const searchResultsDiv = $('searchResults');
-
-            // Дополнительные элементы для мобильной навигации
             const backBtn = $('backBtn');
+            // Новые элементы для файлов
+            const fileBtn = $('fileBtn');
+            const fileInput = $('fileInput');
+            const uploadProgress = $('uploadProgress');
+            const uploadProgressBar = $('uploadProgressBar');
 
             // Тема
             function setTheme(theme) {
@@ -642,7 +705,7 @@
 
             const notificationSound = new Audio('https://zvukogram.com/index.php?r=site/download&id=84076&type=mp3');
 
-            // Вспомогательная функция для отображения аватарки (иконка или img)
+            // Вспомогательная функция для отображения аватарки
             function renderAvatar(container, avatar, sizeClass = '') {
                 if (!container) return;
                 container.innerHTML = '';
@@ -678,7 +741,6 @@
                 return `${days} ${days === 1 ? 'день' : 'дней'} назад`;
             }
 
-            // Функция закрытия чата на мобильных
             function closeMobileChat() {
                 chatContainer.classList.remove('mobile-chat-open');
             }
@@ -724,7 +786,6 @@
                 overlay.style.display = 'none';
             });
 
-            // Редактирование профиля
             editProfileBtn.addEventListener('click', () => {
                 profileModal.style.display = 'none';
                 const user = usersCache[currentUser.uid] || {};
@@ -753,7 +814,6 @@
                     };
                     await usersRef.child(currentUser.uid).update(updates);
                     await currentUser.updateProfile({ displayName: newName });
-                    // Обновляем кэш
                     usersCache[currentUser.uid] = { ...usersCache[currentUser.uid], ...updates };
                     editProfileModal.style.display = 'none';
                     overlay.style.display = 'none';
@@ -764,7 +824,6 @@
                 }
             });
 
-            // Смена пароля
             changePasswordBtn.addEventListener('click', () => {
                 profileModal.style.display = 'none';
                 passwordModal.style.display = 'block';
@@ -814,7 +873,6 @@
                 }
             });
 
-            // Выход из всех устройств
             logoutAllDevicesBtn.addEventListener('click', () => {
                 profileModal.style.display = 'none';
                 confirmModal.style.display = 'block';
@@ -831,7 +889,6 @@
                 passwordModal.style.display = 'block';
             });
 
-            // Восстановление пароля
             forgotPasswordLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 resetModal.style.display = 'block';
@@ -904,7 +961,6 @@
                     div.addEventListener('click', async () => {
                         if (currentUser && currentUser.uid) {
                             await usersRef.child(currentUser.uid).update({ avatar: iconClass });
-                            // обновить кэш и отображение
                             if (usersCache[currentUser.uid]) usersCache[currentUser.uid].avatar = iconClass;
                             renderAvatar(currentUserAvatarContainer, iconClass, '');
                             if (avatarSelector) avatarSelector.style.display = 'none';
@@ -915,7 +971,7 @@
                 });
             }
 
-            // Загрузка фото
+            // Загрузка фото аватара
             let selectedFile = null;
             avatarUpload.addEventListener('change', (e) => {
                 const file = e.target.files[0];
@@ -1202,7 +1258,6 @@
                 searchResultsDiv.classList.remove('show');
             });
 
-            // Закрытие результатов при клике вне
             document.addEventListener('click', (e) => {
                 if (!searchInput.contains(e.target) && !searchResultsDiv.contains(e.target)) {
                     searchResultsDiv.classList.remove('show');
@@ -1249,14 +1304,12 @@
             function loadChats() {
                 usersRef.child(currentUser.uid).child('chats').on('value', async (snapshot) => {
                     const chatIds = snapshot.val() || {};
-                    // Отписываемся от слушателей для удалённых чатов
                     for (let chatId in chatListeners) {
                         if (!chatIds[chatId]) {
                             if (chatListeners[chatId]) chatListeners[chatId].off();
                             delete chatListeners[chatId];
                         }
                     }
-                    // Добавляем слушатели для новых чатов
                     for (let chatId in chatIds) {
                         if (!chatListeners[chatId]) {
                             const chatRef = chatsRef.child(chatId);
@@ -1266,7 +1319,6 @@
                             chatListeners[chatId] = { off: () => chatRef.off('value', listener) };
                         }
                     }
-                    // Первичное построение списка
                     await refreshFullChatList();
                 });
             }
@@ -1351,7 +1403,6 @@
                 chatsListDiv.innerHTML = html || '<div class="text-muted">У вас пока нет чатов</div>';
             }
 
-            // Делегирование кликов на список чатов (исправленный обработчик)
             chatsListDiv.addEventListener('click', (e) => {
                 const chatItem = e.target.closest('.chat-item');
                 if (!chatItem) return;
@@ -1363,13 +1414,12 @@
                 openChat(chatId, type, name, otherUid);
             });
 
-            // Обработчик кнопки "Назад" на мобильных
             backBtn.addEventListener('click', () => {
                 closeMobileChat();
             });
 
             function openChat(chatId, type, displayName, otherUid) {
-                // Полное отключение старых слушателей
+                // Отключаем старые слушатели
                 if (messagesListener) {
                     try {
                         if (currentChatId) messagesRef.child(currentChatId).off('child_added', messagesListener);
@@ -1390,14 +1440,12 @@
                 currentOtherUserId = otherUid || null;
                 lastOpenedChat[chatId] = Date.now();
 
-                // Сброс интерфейса
                 if (chatHeaderName) chatHeaderName.textContent = displayName;
                 if (currentChatStatus) currentChatStatus.innerHTML = '';
                 if (typingIndicator) typingIndicator.textContent = '';
                 if (messagesArea) messagesArea.innerHTML = '';
                 if (messageInputContainer) messageInputContainer.style.display = 'block';
 
-                // Для приватных чатов добавляем слушатели статуса и печатания
                 if (type === 'private' && otherUid) {
                     updateChatHeaderStatus(otherUid);
                     const otherUserRef = usersRef.child(otherUid);
@@ -1415,7 +1463,6 @@
                     });
                 }
 
-                // Слушатель новых сообщений
                 messagesListener = messagesRef.child(chatId).orderByChild('timestamp').on('child_added', (snap) => {
                     const msg = snap.val();
                     displayMessage(msg);
@@ -1432,7 +1479,6 @@
                     }
                 });
 
-                // Подсветка активного чата
                 document.querySelectorAll('.chat-item').forEach(el => {
                     if (el.dataset.chatid === chatId) {
                         el.classList.add('active');
@@ -1441,7 +1487,6 @@
                     }
                 });
 
-                // На мобильных устройствах открываем чат на весь экран
                 chatContainer.classList.add('mobile-chat-open');
             }
 
@@ -1454,6 +1499,27 @@
                         currentChatStatus.innerHTML = `<span class="offline-indicator"></span> был(а) ${formatLastSeen(user.lastSeen)}`;
                     }
                 }
+            }
+
+            // Функция для форматирования размера файла
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            }
+
+            // Функция для определения иконки файла по типу
+            function getFileIcon(mimeType, fileName) {
+                if (mimeType.startsWith('image/')) return 'fa-image';
+                if (mimeType.startsWith('video/')) return 'fa-video';
+                if (mimeType.startsWith('audio/')) return 'fa-music';
+                if (mimeType === 'application/pdf') return 'fa-file-pdf';
+                if (mimeType.includes('word')) return 'fa-file-word';
+                if (mimeType.includes('excel') || mimeType.includes('sheet')) return 'fa-file-excel';
+                if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return 'fa-file-powerpoint';
+                if (mimeType.startsWith('text/')) return 'fa-file-alt';
+                if (mimeType.includes('zip') || mimeType.includes('compressed')) return 'fa-file-archive';
+                return 'fa-file';
             }
 
             async function displayMessage(msg) {
@@ -1475,6 +1541,33 @@
                 msgDiv.className = `message ${isMy ? 'my-message' : 'other-message'}`;
                 const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
+                // Формируем содержимое сообщения (текст + файл)
+                let contentHtml = '';
+                if (msg.text) {
+                    contentHtml += `<div class="message-bubble">${msg.text}</div>`;
+                }
+                if (msg.fileURL) {
+                    const fileIcon = getFileIcon(msg.fileType || '', msg.fileName || '');
+                    const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
+                    if (msg.fileType && msg.fileType.startsWith('image/')) {
+                        // Для изображений показываем превью
+                        contentHtml += `<div><img src="${msg.fileURL}" class="image-preview" onclick="window.open('${msg.fileURL}', '_blank')" alt="image"></div>`;
+                    } else {
+                        contentHtml += `
+                            <div class="file-attachment">
+                                <i class="fas ${fileIcon} file-icon"></i>
+                                <div class="file-info">
+                                    <div class="file-name">${msg.fileName || 'Файл'}</div>
+                                    <div class="file-size">${fileSize}</div>
+                                </div>
+                                <a href="${msg.fileURL}" target="_blank" class="file-download">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                        `;
+                    }
+                }
+
                 const reactions = msg.reactions || {};
                 const count = Object.keys(reactions).length;
                 const userReacted = reactions[currentUser.uid] ? true : false;
@@ -1488,7 +1581,7 @@
                         ${avatarHtml}
                         <span>${senderDisplay} · ${time}</span>
                     </div>
-                    <div class="message-bubble">${msg.text}</div>
+                    ${contentHtml}
                     <button class="reaction-btn" data-message-id="${msg.id}" data-reacted="${userReacted}">
                         👍 <span class="reaction-count">${count}</span>
                     </button>
@@ -1512,20 +1605,72 @@
                 messagesArea.scrollTop = messagesArea.scrollHeight;
             }
 
-            // Отслеживание печатания
-            if (messageInput) {
-                messageInput.addEventListener('input', () => {
-                    if (!currentChatId || !currentOtherUserId) return;
-                    const typingRef = db.ref(`chats/${currentChatId}/typing/${currentUser.uid}`);
-                    typingRef.set(true);
-                    if (typingTimeout) clearTimeout(typingTimeout);
-                    typingTimeout = setTimeout(() => {
-                        typingRef.remove();
-                    }, 2000);
-                });
-            }
+            // Обработчик кнопки прикрепления файла
+            fileBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
 
-            // Отправка сообщения
+            // Обработчик выбора файла
+            fileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file || !currentChatId) return;
+
+                // Проверка размера (например, до 20 МБ)
+                if (file.size > 20 * 1024 * 1024) {
+                    alert('Файл слишком большой (макс. 20 МБ)');
+                    fileInput.value = '';
+                    return;
+                }
+
+                // Показываем прогресс
+                uploadProgress.style.display = 'block';
+                uploadProgressBar.style.width = '0%';
+
+                const fileRef = storage.ref(`chat_files/${currentChatId}/${Date.now()}_${file.name}`);
+                const uploadTask = fileRef.put(file);
+
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        // Прогресс
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        uploadProgressBar.style.width = progress + '%';
+                    },
+                    (error) => {
+                        console.error('Ошибка загрузки файла:', error);
+                        alert('Ошибка загрузки файла');
+                        uploadProgress.style.display = 'none';
+                        fileInput.value = '';
+                    },
+                    async () => {
+                        // Завершено
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                        // Отправляем сообщение с файлом
+                        const msg = {
+                            senderId: currentUser.uid,
+                            senderName: currentUser.displayName || currentUser.email,
+                            text: '', // можно добавить текст позже, но пока пусто
+                            fileURL: downloadURL,
+                            fileName: file.name,
+                            fileType: file.type,
+                            fileSize: file.size,
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        };
+                        const newMsgRef = messagesRef.child(currentChatId).push();
+                        await newMsgRef.set({ ...msg, id: newMsgRef.key });
+                        await chatsRef.child(currentChatId).update({
+                            lastMessage: '📎 Файл',
+                            lastMessageTime: msg.timestamp
+                        });
+
+                        // Скрываем прогресс и очищаем input
+                        uploadProgress.style.display = 'none';
+                        uploadProgressBar.style.width = '0%';
+                        fileInput.value = '';
+                    }
+                );
+            });
+
+            // Отправка текстового сообщения
             safeAddListener(sendButton, 'click', async () => {
                 const text = messageInput?.value.trim() || '';
                 if (!text || !currentChatId) return;
@@ -1550,6 +1695,19 @@
             if (messageInput) {
                 messageInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter' && sendButton) sendButton.click();
+                });
+            }
+
+            // Отслеживание печатания
+            if (messageInput) {
+                messageInput.addEventListener('input', () => {
+                    if (!currentChatId || !currentOtherUserId) return;
+                    const typingRef = db.ref(`chats/${currentChatId}/typing/${currentUser.uid}`);
+                    typingRef.set(true);
+                    if (typingTimeout) clearTimeout(typingTimeout);
+                    typingTimeout = setTimeout(() => {
+                        typingRef.remove();
+                    }, 2000);
                 });
             }
 
