@@ -8,36 +8,32 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
-            background: #f0f2f5;
             transition: background-color 0.3s, color 0.3s;
         }
         .auth-container {
-            max-width: 400px; margin: 50px auto; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 400px; margin: 50px auto; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .chat-container {
-            max-width: 1200px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 1200px; margin: 20px auto; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .sidebar { background: #f8f9fa; border-right: 1px solid #dee2e6; height: 80vh; overflow-y: auto; padding: 15px; }
+        .sidebar { border-right: 1px solid; height: 80vh; overflow-y: auto; padding: 15px; }
         .main-chat { height: 80vh; display: flex; flex-direction: column; }
-        .messages-area { flex-grow: 1; overflow-y: auto; padding: 20px; background: #fff; }
+        .messages-area { flex-grow: 1; overflow-y: auto; padding: 20px; }
         .message { margin-bottom: 15px; display: flex; flex-direction: column; }
         .my-message { align-items: flex-end; }
         .other-message { align-items: flex-start; }
         .message-bubble { max-width: 70%; padding: 10px 15px; border-radius: 18px; word-wrap: break-word; }
-        .my-message .message-bubble { background: #0084ff; color: white; }
-        .other-message .message-bubble { background: #e4e6eb; color: black; }
-        .message-info { font-size: 0.75rem; color: #65676b; display: flex; align-items: center; gap: 5px; margin-bottom: 2px; cursor: pointer; }
+        .message-info { font-size: 0.75rem; display: flex; align-items: center; gap: 5px; margin-bottom: 2px; cursor: pointer; }
         .my-message .message-info { justify-content: flex-end; }
         
         /* Стили для ответов */
         .reply-preview {
             display: none;
-            background: #f0f2f5;
             padding: 8px 12px;
             border-radius: 8px;
             margin-bottom: 8px;
             position: relative;
-            border-left: 3px solid #0084ff;
+            border-left: 3px solid;
         }
         .reply-preview button {
             position: absolute;
@@ -47,37 +43,22 @@
             background: none;
             font-size: 16px;
             cursor: pointer;
-            color: #65676b;
-        }
-        .reply-preview button:hover {
-            color: #ff4444;
         }
         .reply-content {
             font-size: 0.9rem;
-            color: #65676b;
             padding-right: 20px;
         }
         .reply-content small {
-            color: #0084ff;
             font-weight: bold;
         }
         
         .replied-message {
-            background: rgba(0,0,0,0.05);
-            border-left: 2px solid #0084ff;
+            border-left: 2px solid;
             padding: 5px 10px;
             margin-bottom: 5px;
             border-radius: 8px;
             font-size: 0.85rem;
-            color: #65676b;
             cursor: pointer;
-        }
-        .replied-message:hover {
-            background: rgba(0,0,0,0.1);
-        }
-        .dark-theme .replied-message {
-            background: rgba(255,255,255,0.1);
-            color: #aaa;
         }
         
         .message-actions {
@@ -95,7 +76,6 @@
             border: none;
             font-size: 0.9rem;
             cursor: pointer;
-            color: #65676b;
             padding: 2px 8px;
             border-radius: 15px;
             display: inline-flex;
@@ -105,34 +85,26 @@
         .message-action-btn:hover {
             background: rgba(0,0,0,0.1);
         }
-        .dark-theme .message-action-btn {
-            color: #aaa;
-        }
-        .dark-theme .message-action-btn:hover {
-            background: rgba(255,255,255,0.1);
-        }
         
         .edited-label {
             font-size: 0.7rem;
-            color: #999;
             margin-left: 5px;
             font-style: italic;
         }
         
         .chat-item, .search-result-item { padding: 10px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
-        .chat-item:hover, .search-result-item:hover { background: #e4e6eb; }
-        .chat-item.active { background: #e7f3ff; border-left: 3px solid #0084ff; }
-        .current-chat-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; display: flex; align-items: center; gap: 10px; }
+        .chat-item:hover, .search-result-item:hover {  }
+        .chat-item.active { border-left: 3px solid; }
+        .current-chat-header { padding: 15px; border-bottom: 1px solid; display: flex; align-items: center; gap: 10px; }
         .error-message { color: red; font-size: 0.9rem; }
         
-        /* Стили для панели стикеров */
+        /* Панель стикеров */
         .sticker-panel {
             display: none;
             position: absolute;
             bottom: 70px;
             left: 0;
-            background: white;
-            border: 1px solid #ccc;
+            border: 1px solid;
             border-radius: 10px;
             padding: 10px;
             width: 350px;
@@ -147,29 +119,22 @@
             gap: 5px;
             padding-bottom: 10px;
             margin-bottom: 10px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid;
             scrollbar-width: thin;
         }
         
         .sticker-category-btn {
             padding: 5px 10px;
-            border: 1px solid #ddd;
+            border: 1px solid;
             border-radius: 20px;
-            background: #f8f9fa;
             cursor: pointer;
             white-space: nowrap;
             font-size: 0.9rem;
             transition: all 0.2s;
         }
         
-        .sticker-category-btn:hover {
-            background: #e4e6eb;
-        }
-        
         .sticker-category-btn.active {
-            background: #0084ff;
-            color: white;
-            border-color: #0084ff;
+            border-color: transparent;
         }
         
         .sticker-grid {
@@ -191,47 +156,32 @@
         }
         
         .sticker:hover {
-            background: #e4e6eb;
             transform: scale(1.1);
         }
-        
-        /* Темная тема для стикеров */
-        body.dark-theme .sticker-panel {
-            background: #2d2d2d;
-            border-color: #444;
+
+        /* Селектор тем */
+        .theme-selector {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
         }
         
-        body.dark-theme .sticker-categories {
-            border-bottom-color: #444;
-        }
-        
-        body.dark-theme .sticker-category-btn {
-            background: #3a3a3a;
-            border-color: #555;
-            color: #e0e0e0;
-        }
-        
-        body.dark-theme .sticker-category-btn:hover {
-            background: #4a4a4a;
-        }
-        
-        body.dark-theme .sticker-category-btn.active {
-            background: #0d47a1;
-            border-color: #0d47a1;
-            color: white;
-        }
-        
-        body.dark-theme .sticker:hover {
-            background: #4a4a4a;
+        .theme-selector select {
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid;
+            cursor: pointer;
+            font-size: 14px;
+            outline: none;
         }
 
-        .avatar-selector { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.3); z-index: 2000; max-width: 400px; width: 90%; }
+        .avatar-selector { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 10px; padding: 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.3); z-index: 2000; max-width: 400px; width: 90%; }
         .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px; }
         .avatar-option { font-size: 2.5rem; cursor: pointer; text-align: center; padding: 5px; border-radius: 8px; }
-        .avatar-option:hover { background: #e7f3ff; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; }
         .current-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px; border-radius: 8px; margin-bottom: 15px; }
-        .current-user:hover { background: #e4e6eb; }
+        .current-user:hover {  }
         .current-user i, .current-user img { width: 2rem; height: 2rem; border-radius: 50%; object-fit: cover; }
         .user-item i, .user-item img, .chat-item i, .chat-item img, .message-info i, .message-info img {
             width: 30px; height: 30px; border-radius: 50%; object-fit: cover; font-size: 1.5rem; text-align: center; line-height: 30px;
@@ -257,14 +207,11 @@
         }
         .last-seen {
             font-size: 0.7rem;
-            color: #65676b;
             margin-left: 5px;
         }
 
-        /* Индикатор печатает */
         .typing-indicator {
             font-size: 0.8rem;
-            color: #65676b;
             margin-left: 10px;
             font-style: italic;
         }
@@ -276,7 +223,6 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 2px 20px rgba(0,0,0,0.3);
@@ -298,17 +244,15 @@
         }
         .profile-modal p {
             margin: 5px 0;
-            color: #65676b;
         }
         .password-modal input, .reset-modal input, .edit-profile-modal input {
             width: 100%;
             padding: 8px;
             margin: 8px 0;
-            border: 1px solid #ccc;
+            border: 1px solid;
             border-radius: 5px;
         }
 
-        /* Кнопка реакции */
         .reaction-btn {
             background: none;
             border: none;
@@ -319,19 +263,10 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            color: #65676b;
             transition: background 0.2s;
-        }
-        .reaction-btn:hover {
-            background: #e4e6eb;
-        }
-        .reaction-count {
-            font-size: 0.8rem;
-            margin-left: 2px;
-            font-weight: bold;
+            margin-top: 4px;
         }
 
-        /* Поиск */
         .search-container {
             margin-bottom: 15px;
             position: relative;
@@ -341,8 +276,7 @@
             top: 100%;
             left: 0;
             right: 0;
-            background: white;
-            border: 1px solid #ccc;
+            border: 1px solid;
             border-radius: 5px;
             max-height: 200px;
             overflow-y: auto;
@@ -354,90 +288,10 @@
         }
         .search-result-item {
             padding: 8px 12px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid;
         }
         .search-result-item:last-child {
             border-bottom: none;
-        }
-
-        /* Тёмная тема */
-        body.dark-theme {
-            background: #1a1a1a;
-            color: #e0e0e0;
-        }
-        body.dark-theme .auth-container,
-        body.dark-theme .chat-container,
-        body.dark-theme .sidebar,
-        body.dark-theme .messages-area,
-        body.dark-theme .current-chat-header,
-        body.dark-theme .sticker-panel,
-        body.dark-theme .avatar-selector,
-        body.dark-theme .profile-modal,
-        body.dark-theme .password-modal,
-        body.dark-theme .reset-modal,
-        body.dark-theme .confirm-modal,
-        body.dark-theme .edit-profile-modal,
-        body.dark-theme .search-results,
-        body.dark-theme .reply-preview {
-            background: #2d2d2d;
-            border-color: #444;
-            color: #e0e0e0;
-        }
-        body.dark-theme .sidebar {
-            background: #252525;
-            border-right-color: #444;
-        }
-        body.dark-theme .messages-area {
-            background: #1e1e1e;
-        }
-        body.dark-theme .chat-item,
-        body.dark-theme .search-result-item,
-        body.dark-theme .current-user:hover,
-        body.dark-theme .chat-item:hover,
-        body.dark-theme .search-result-item:hover {
-            background: #3a3a3a;
-            color: #e0e0e0;
-        }
-        body.dark-theme .chat-item.active {
-            background: #3e5a7a;
-            border-left-color: #90caf9;
-        }
-        body.dark-theme .my-message .message-bubble {
-            background: #0d47a1;
-            color: white;
-        }
-        body.dark-theme .other-message .message-bubble {
-            background: #424242;
-            color: #e0e0e0;
-        }
-        body.dark-theme .message-info {
-            color: #aaa;
-        }
-        body.dark-theme .btn-outline-secondary {
-            color: #e0e0e0;
-            border-color: #666;
-        }
-        body.dark-theme .btn-outline-secondary:hover {
-            background: #4a4a4a;
-            color: white;
-        }
-        body.dark-theme .form-control {
-            background: #3a3a3a;
-            border-color: #555;
-            color: #e0e0e0;
-        }
-        body.dark-theme .form-control:focus {
-            background: #3a3a3a;
-            color: #e0e0e0;
-        }
-        body.dark-theme .overlay {
-            background: rgba(0,0,0,0.7);
-        }
-        body.dark-theme .reply-content {
-            color: #aaa;
-        }
-        body.dark-theme .reply-content small {
-            color: #90caf9;
         }
 
         /* Мобильные улучшения */
@@ -480,7 +334,6 @@
                 height: 80vh;
                 transform: translateX(100%);
                 transition: transform 0.3s ease;
-                background: white;
                 z-index: 10;
             }
             .chat-container.mobile-chat-open .sidebar {
@@ -516,6 +369,17 @@
 </head>
 <body>
     <div id="overlay" class="overlay"></div>
+
+    <!-- Селектор тем -->
+    <div class="theme-selector">
+        <select id="themeSelector">
+            <option value="light">☀️ Светлая</option>
+            <option value="dark">🌙 Темная</option>
+            <option value="ocean">🌊 Океан</option>
+            <option value="forest">🌲 Лес</option>
+            <option value="sunset">🌅 Закат</option>
+        </select>
+    </div>
 
     <!-- Модальное окно выбора аватарки -->
     <div id="avatarSelector" class="avatar-selector">
@@ -640,7 +504,7 @@
                 <div id="messagesArea" class="messages-area">
                     <div class="text-muted text-center py-5">Выберите чат слева</div>
                 </div>
-                <div id="messageInputContainer" style="display:none; padding:15px; border-top:1px solid #dee2e6; position: relative;">
+                <div id="messageInputContainer" style="display:none; padding:15px; border-top:1px solid; position: relative;">
                     <!-- Панель предпросмотра ответа -->
                     <div id="replyPreview" class="reply-preview">
                         <button id="cancelReply">✕</button>
@@ -716,6 +580,316 @@
 
             const stickers = Object.values(stickerCategories).flat();
 
+            // ========== НОВОЕ: Определение тем ==========
+            const themes = {
+                light: {
+                    name: '☀️ Светлая',
+                    colors: {
+                        background: '#f0f2f5',
+                        surface: '#ffffff',
+                        text: '#000000',
+                        textSecondary: '#65676b',
+                        border: '#dee2e6',
+                        primary: '#0084ff',
+                        primaryLight: '#e7f3ff',
+                        messageMy: '#0084ff',
+                        messageOther: '#e4e6eb',
+                        messageMyText: '#ffffff',
+                        messageOtherText: '#000000',
+                        hover: '#e4e6eb',
+                        activeChat: '#e7f3ff',
+                        stickerHover: '#e4e6eb',
+                        modalBackground: '#ffffff',
+                        inputBackground: '#ffffff'
+                    }
+                },
+                dark: {
+                    name: '🌙 Темная',
+                    colors: {
+                        background: '#1a1a1a',
+                        surface: '#2d2d2d',
+                        text: '#e0e0e0',
+                        textSecondary: '#aaaaaa',
+                        border: '#444444',
+                        primary: '#0d47a1',
+                        primaryLight: '#1e3a5f',
+                        messageMy: '#0d47a1',
+                        messageOther: '#424242',
+                        messageMyText: '#ffffff',
+                        messageOtherText: '#e0e0e0',
+                        hover: '#3a3a3a',
+                        activeChat: '#3e5a7a',
+                        stickerHover: '#4a4a4a',
+                        modalBackground: '#2d2d2d',
+                        inputBackground: '#3a3a3a'
+                    }
+                },
+                ocean: {
+                    name: '🌊 Океан',
+                    colors: {
+                        background: '#e3f2fd',
+                        surface: '#ffffff',
+                        text: '#01579b',
+                        textSecondary: '#0288d1',
+                        border: '#81d4fa',
+                        primary: '#0277bd',
+                        primaryLight: '#b3e5fc',
+                        messageMy: '#0277bd',
+                        messageOther: '#b3e5fc',
+                        messageMyText: '#ffffff',
+                        messageOtherText: '#01579b',
+                        hover: '#b3e5fc',
+                        activeChat: '#b3e5fc',
+                        stickerHover: '#b3e5fc',
+                        modalBackground: '#ffffff',
+                        inputBackground: '#ffffff'
+                    }
+                },
+                forest: {
+                    name: '🌲 Лес',
+                    colors: {
+                        background: '#e8f5e9',
+                        surface: '#ffffff',
+                        text: '#1b5e20',
+                        textSecondary: '#2e7d32',
+                        border: '#a5d6a7',
+                        primary: '#2e7d32',
+                        primaryLight: '#c8e6c9',
+                        messageMy: '#2e7d32',
+                        messageOther: '#c8e6c9',
+                        messageMyText: '#ffffff',
+                        messageOtherText: '#1b5e20',
+                        hover: '#c8e6c9',
+                        activeChat: '#c8e6c9',
+                        stickerHover: '#c8e6c9',
+                        modalBackground: '#ffffff',
+                        inputBackground: '#ffffff'
+                    }
+                },
+                sunset: {
+                    name: '🌅 Закат',
+                    colors: {
+                        background: '#fff3e0',
+                        surface: '#ffffff',
+                        text: '#bf360c',
+                        textSecondary: '#e65100',
+                        border: '#ffb74d',
+                        primary: '#e65100',
+                        primaryLight: '#ffe0b2',
+                        messageMy: '#e65100',
+                        messageOther: '#ffe0b2',
+                        messageMyText: '#ffffff',
+                        messageOtherText: '#bf360c',
+                        hover: '#ffe0b2',
+                        activeChat: '#ffe0b2',
+                        stickerHover: '#ffe0b2',
+                        modalBackground: '#ffffff',
+                        inputBackground: '#ffffff'
+                    }
+                }
+            };
+
+            // НОВОЕ: Функция применения темы
+            function applyTheme(themeName) {
+                const theme = themes[themeName];
+                if (!theme) return;
+                
+                const colors = theme.colors;
+                
+                // Применяем CSS переменные
+                const root = document.documentElement;
+                root.style.setProperty('--bg-color', colors.background);
+                root.style.setProperty('--surface-color', colors.surface);
+                root.style.setProperty('--text-color', colors.text);
+                root.style.setProperty('--text-secondary', colors.textSecondary);
+                root.style.setProperty('--border-color', colors.border);
+                root.style.setProperty('--primary-color', colors.primary);
+                root.style.setProperty('--primary-light', colors.primaryLight);
+                root.style.setProperty('--message-my', colors.messageMy);
+                root.style.setProperty('--message-other', colors.messageOther);
+                root.style.setProperty('--message-my-text', colors.messageMyText);
+                root.style.setProperty('--message-other-text', colors.messageOtherText);
+                root.style.setProperty('--hover-color', colors.hover);
+                root.style.setProperty('--active-chat', colors.activeChat);
+                root.style.setProperty('--sticker-hover', colors.stickerHover);
+                root.style.setProperty('--modal-bg', colors.modalBackground);
+                root.style.setProperty('--input-bg', colors.inputBackground);
+                
+                // Применяем к body
+                document.body.style.backgroundColor = colors.background;
+                document.body.style.color = colors.text;
+                
+                // Сохраняем выбранную тему
+                localStorage.setItem('selectedTheme', themeName);
+                
+                // Обновляем текст кнопки
+                if (themeToggle) {
+                    themeToggle.textContent = themeName === 'dark' ? '☀️' : '🌙';
+                }
+            }
+
+            // НОВОЕ: Создаем CSS переменные
+            const style = document.createElement('style');
+            style.textContent = `
+                :root {
+                    --bg-color: #f0f2f5;
+                    --surface-color: #ffffff;
+                    --text-color: #000000;
+                    --text-secondary: #65676b;
+                    --border-color: #dee2e6;
+                    --primary-color: #0084ff;
+                    --primary-light: #e7f3ff;
+                    --message-my: #0084ff;
+                    --message-other: #e4e6eb;
+                    --message-my-text: #ffffff;
+                    --message-other-text: #000000;
+                    --hover-color: #e4e6eb;
+                    --active-chat: #e7f3ff;
+                    --sticker-hover: #e4e6eb;
+                    --modal-bg: #ffffff;
+                    --input-bg: #ffffff;
+                }
+                
+                body {
+                    background-color: var(--bg-color);
+                    color: var(--text-color);
+                }
+                
+                .auth-container, .chat-container, .sidebar, .messages-area, .current-chat-header,
+                .sticker-panel, .avatar-selector, .profile-modal, .password-modal, .reset-modal,
+                .confirm-modal, .edit-profile-modal, .search-results, .reply-preview {
+                    background-color: var(--surface-color);
+                    border-color: var(--border-color);
+                    color: var(--text-color);
+                }
+                
+                .sidebar {
+                    background-color: var(--surface-color);
+                    border-right-color: var(--border-color);
+                }
+                
+                .messages-area {
+                    background-color: var(--surface-color);
+                }
+                
+                .chat-item, .search-result-item, .current-user:hover, .chat-item:hover, .search-result-item:hover {
+                    background-color: var(--hover-color);
+                    color: var(--text-color);
+                }
+                
+                .chat-item.active {
+                    background-color: var(--active-chat);
+                    border-left-color: var(--primary-color);
+                }
+                
+                .my-message .message-bubble {
+                    background-color: var(--message-my);
+                    color: var(--message-my-text);
+                }
+                
+                .other-message .message-bubble {
+                    background-color: var(--message-other);
+                    color: var(--message-other-text);
+                }
+                
+                .message-info {
+                    color: var(--text-secondary);
+                }
+                
+                .sticker:hover, .avatar-option:hover, .reaction-btn:hover, .message-action-btn:hover {
+                    background-color: var(--sticker-hover);
+                }
+                
+                .btn-outline-secondary {
+                    color: var(--text-color);
+                    border-color: var(--border-color);
+                }
+                
+                .btn-outline-secondary:hover {
+                    background-color: var(--hover-color);
+                    color: var(--text-color);
+                }
+                
+                .form-control {
+                    background-color: var(--input-bg);
+                    border-color: var(--border-color);
+                    color: var(--text-color);
+                }
+                
+                .form-control:focus {
+                    background-color: var(--input-bg);
+                    color: var(--text-color);
+                }
+                
+                .list-group-item {
+                    background-color: var(--surface-color);
+                    color: var(--text-color);
+                    border-color: var(--border-color);
+                }
+                
+                .text-muted {
+                    color: var(--text-secondary) !important;
+                }
+                
+                .overlay {
+                    background: rgba(0,0,0,0.5);
+                }
+                
+                .sticker-categories {
+                    border-bottom-color: var(--border-color);
+                }
+                
+                .sticker-category-btn {
+                    background-color: var(--hover-color);
+                    border-color: var(--border-color);
+                    color: var(--text-color);
+                }
+                
+                .sticker-category-btn:hover {
+                    background-color: var(--sticker-hover);
+                }
+                
+                .sticker-category-btn.active {
+                    background-color: var(--primary-color);
+                    border-color: var(--primary-color);
+                    color: white;
+                }
+                
+                .reply-preview {
+                    background-color: var(--hover-color);
+                    border-left-color: var(--primary-color);
+                }
+                
+                .reply-content {
+                    color: var(--text-secondary);
+                }
+                
+                .reply-content small {
+                    color: var(--primary-color);
+                }
+                
+                .replied-message {
+                    background-color: var(--hover-color);
+                    border-left-color: var(--primary-color);
+                    color: var(--text-secondary);
+                }
+                
+                .message-action-btn {
+                    color: var(--text-secondary);
+                }
+                
+                .theme-selector select {
+                    background-color: var(--surface-color);
+                    border-color: var(--border-color);
+                    color: var(--text-color);
+                }
+                
+                .theme-selector select:hover {
+                    background-color: var(--hover-color);
+                }
+            `;
+            document.head.appendChild(style);
+
             const $ = id => document.getElementById(id);
             const authContainer = $('authContainer');
             const chatContainer = $('chatContainer');
@@ -754,6 +928,7 @@
             const currentChatStatus = $('currentChatStatus');
             const typingIndicator = $('typingIndicator');
             const themeToggle = $('themeToggle');
+            const themeSelector = $('themeSelector');
             const profileModal = $('profileModal');
             const profileAvatarContainer = $('profileAvatarContainer');
             const profileName = $('profileName');
@@ -798,29 +973,35 @@
             // Текущая выбранная категория стикеров
             let currentStickerCategory = Object.keys(stickerCategories)[0];
             
-            // НОВОЕ: переменная для ответа
+            // Переменная для ответа
             let replyingTo = null;
             
-            // НОВОЕ: переменная для редактирования
+            // Переменная для редактирования
             let editingMessage = null;
 
-            // Тема
-            function setTheme(theme) {
-                if (theme === 'dark') {
-                    document.body.classList.add('dark-theme');
-                    if (themeToggle) themeToggle.textContent = '☀️';
-                    localStorage.setItem('theme', 'dark');
-                } else {
-                    document.body.classList.remove('dark-theme');
-                    if (themeToggle) themeToggle.textContent = '🌙';
-                    localStorage.setItem('theme', 'light');
-                }
+            // НОВОЕ: Загружаем сохраненную тему
+            const savedTheme = localStorage.getItem('selectedTheme') || 'light';
+            applyTheme(savedTheme);
+            if (themeSelector) {
+                themeSelector.value = savedTheme;
             }
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            setTheme(savedTheme);
+
+            // НОВОЕ: Обработчик смены темы через селектор
+            if (themeSelector) {
+                themeSelector.addEventListener('change', (e) => {
+                    applyTheme(e.target.value);
+                });
+            }
+
+            // Старый переключатель темы
             if (themeToggle) {
                 themeToggle.addEventListener('click', () => {
-                    setTheme(document.body.classList.contains('dark-theme') ? 'light' : 'dark');
+                    const currentTheme = localStorage.getItem('selectedTheme') || 'light';
+                    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                    applyTheme(newTheme);
+                    if (themeSelector) {
+                        themeSelector.value = newTheme;
+                    }
                 });
             }
 
@@ -1637,7 +1818,7 @@
                 }
             }
 
-            // НОВОЕ: функция отмены ответа
+            // функция отмены ответа
             function cancelReplyFunction() {
                 replyingTo = null;
                 if (replyPreview) {
@@ -1648,7 +1829,7 @@
                 }
             }
             
-            // НОВОЕ: функция отмены редактирования
+            // функция отмены редактирования
             function cancelEditFunction() {
                 editingMessage = null;
                 if (sendButton) {
@@ -1659,12 +1840,12 @@
                 }
             }
 
-            // НОВОЕ: обработчик отмены ответа
+            // обработчик отмены ответа
             if (cancelReply) {
                 cancelReply.addEventListener('click', cancelReplyFunction);
             }
 
-            // НОВОЕ: функция для перехода к отвеченному сообщению
+            // функция для перехода к отвеченному сообщению
             function scrollToMessage(messageId) {
                 const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
                 if (messageElement) {
@@ -1676,7 +1857,7 @@
                 }
             }
 
-            // НОВАЯ: функция отображения сообщения с ответами и редактированием
+            // функция отображения сообщения с ответами и редактированием
             function displayMessage(msg) {
                 if (!messagesArea) return;
                 if (messagesArea.innerHTML.includes('Выберите чат') || messagesArea.innerHTML.includes('Загрузка')) {
