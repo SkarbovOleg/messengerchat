@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Чат — файлы и изображения</title>
+    <title>Чат</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Все стили без изменений (как в предыдущей версии) */
         body {
             background: #f0f2f5;
             transition: background-color 0.3s, color 0.3s;
@@ -146,9 +145,6 @@
             margin-left: 2px;
             font-weight: bold;
         }
-        .my-message .reaction-btn {
-            align-self: flex-start;
-        }
 
         /* Поиск */
         .search-container {
@@ -253,20 +249,12 @@
             background: #3a3a3a;
             color: #e0e0e0;
         }
-        body.dark-theme .list-group-item {
-            background: #2d2d2d;
-            color: #e0e0e0;
-            border-color: #444;
-        }
-        body.dark-theme .text-muted {
-            color: #aaa !important;
-        }
         body.dark-theme .overlay {
             background: rgba(0,0,0,0.7);
         }
 
-        /* ========== МОБИЛЬНЫЕ УЛУЧШЕНИЯ ========== */
-        .chat-item, .user-item {
+        /* Мобильные улучшения */
+        .chat-item {
             padding: 15px 12px;
             min-height: 60px;
         }
@@ -327,80 +315,15 @@
                 max-width: 85%;
             }
         }
-
-        /* ========== СТИЛИ ДЛЯ ФАЙЛОВ ========== */
-        .file-attachment {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(0,0,0,0.05);
-            border-radius: 10px;
-            padding: 8px 12px;
-            margin-top: 5px;
-        }
-        .dark-theme .file-attachment {
-            background: rgba(255,255,255,0.1);
-        }
-        .file-icon {
-            font-size: 2rem;
-        }
-        .file-info {
-            flex-grow: 1;
-            overflow: hidden;
-        }
-        .file-name {
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .file-size {
-            font-size: 0.8rem;
-            color: #65676b;
-        }
-        .file-download {
-            color: #0084ff;
-            font-size: 1.2rem;
-        }
-        .image-preview {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-top: 5px;
-        }
-        .upload-progress {
-            display: none;
-            width: 100%;
-            height: 4px;
-            background: #e0e0e0;
-            border-radius: 2px;
-            margin: 10px 0;
-        }
-        .upload-progress-bar {
-            width: 0%;
-            height: 100%;
-            background: #0084ff;
-            border-radius: 2px;
-            transition: width 0.2s;
-        }
     </style>
 </head>
 <body>
     <div id="overlay" class="overlay"></div>
 
-    <!-- Модальное окно выбора аватарки (с загрузкой) -->
+    <!-- Модальное окно выбора аватарки -->
     <div id="avatarSelector" class="avatar-selector">
         <h5>Выберите аватарку</h5>
         <div class="avatar-grid" id="avatarGrid"></div>
-        <div class="avatar-upload">
-            <label for="avatarUpload" class="btn btn-outline-primary btn-sm">Загрузить фото</label>
-            <input type="file" id="avatarUpload" accept="image/*" style="display:none;">
-            <div class="mt-2">
-                <img id="avatarPreview" class="avatar-preview" src="#" alt="Предпросмотр">
-            </div>
-            <button id="uploadAvatarBtn" class="btn btn-success btn-sm mt-2" style="display:none;">Сохранить фото</button>
-        </div>
         <button class="btn btn-secondary btn-sm mt-3 w-100" id="closeAvatarBtn">Закрыть</button>
     </div>
 
@@ -521,18 +444,11 @@
                     <div class="text-muted text-center py-5">Выберите чат слева</div>
                 </div>
                 <div id="messageInputContainer" style="display:none; padding:15px; border-top:1px solid #dee2e6; position: relative;">
-                    <!-- Индикатор загрузки файла -->
-                    <div id="uploadProgress" class="upload-progress">
-                        <div id="uploadProgressBar" class="upload-progress-bar"></div>
-                    </div>
                     <div style="display: flex; gap: 5px; align-items: center;">
-                        <button class="btn btn-outline-secondary" id="fileBtn" type="button" title="Прикрепить файл">📎</button>
                         <button class="btn btn-outline-secondary" id="stickerBtn" type="button">😊</button>
                         <input type="text" id="messageInput" class="form-control" placeholder="Введите сообщение..." style="flex-grow:1;">
                         <button class="btn btn-primary" id="sendButton">Отправить</button>
                     </div>
-                    <!-- Скрытое поле для выбора файла -->
-                    <input type="file" id="fileInput" style="display: none;">
                     <div id="stickerPanel" class="sticker-panel">
                         <div class="sticker-grid" id="stickerGrid"></div>
                     </div>
@@ -544,7 +460,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
 
     <script>
         (function() {
@@ -561,7 +476,6 @@
             firebase.initializeApp(firebaseConfig);
             const auth = firebase.auth();
             const db = firebase.database();
-            const storage = firebase.storage();
             const usersRef = db.ref('users');
             const chatsRef = db.ref('chats');
             const messagesRef = db.ref('messages');
@@ -600,7 +514,6 @@
             const registerPassword = $('registerPassword');
             const logoutBtn = $('logoutBtn');
             const chatsListDiv = $('chatsList');
-            const currentChatHeader = $('currentChatHeader');
             const chatHeaderName = $('chatHeaderName');
             const messagesArea = $('messagesArea');
             const messageInputContainer = $('messageInputContainer');
@@ -654,17 +567,9 @@
             const editProfileError = $('editProfileError');
             const saveProfileBtn = $('saveProfileBtn');
             const closeEditProfileBtn = $('closeEditProfileBtn');
-            const avatarUpload = $('avatarUpload');
-            const avatarPreview = $('avatarPreview');
-            const uploadAvatarBtn = $('uploadAvatarBtn');
             const searchInput = $('searchInput');
             const searchResultsDiv = $('searchResults');
             const backBtn = $('backBtn');
-            // Новые элементы для файлов
-            const fileBtn = $('fileBtn');
-            const fileInput = $('fileInput');
-            const uploadProgress = $('uploadProgress');
-            const uploadProgressBar = $('uploadProgressBar');
 
             // Тема
             function setTheme(theme) {
@@ -971,108 +876,6 @@
                 });
             }
 
-            // ========== ИСПРАВЛЕНО: Загрузка фото аватара ==========
-            let selectedFile = null;
-            avatarUpload.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    // Проверка типа файла
-                    if (!file.type.startsWith('image/')) {
-                        alert('Пожалуйста, выберите изображение');
-                        avatarUpload.value = '';
-                        return;
-                    }
-                    
-                    // Проверка размера (макс 5 МБ)
-                    if (file.size > 5 * 1024 * 1024) {
-                        alert('Изображение слишком большое (макс. 5 МБ)');
-                        avatarUpload.value = '';
-                        return;
-                    }
-                    
-                    selectedFile = file;
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        avatarPreview.src = e.target.result;
-                        avatarPreview.style.display = 'block';
-                        uploadAvatarBtn.style.display = 'inline-block';
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-
-            uploadAvatarBtn.addEventListener('click', async () => {
-                if (!selectedFile || !currentUser) return;
-                
-                const userId = currentUser.uid;
-                // ИСПРАВЛЕНО: Правильный путь в Storage (убрал лишний слэш)
-                const fileRef = storage.ref(`avatars/${userId}/${Date.now()}_${selectedFile.name}`);
-                
-                try {
-                    // Показываем индикатор загрузки
-                    uploadAvatarBtn.textContent = 'Загрузка...';
-                    uploadAvatarBtn.disabled = true;
-                    
-                    const snapshot = await fileRef.put(selectedFile);
-                    const downloadURL = await snapshot.ref.getDownloadURL();
-                    
-                    // Сохраняем в базу данных
-                    await usersRef.child(userId).update({ avatar: downloadURL });
-                    
-                    // ИСПРАВЛЕНО: Обновляем кэш пользователя
-                    if (usersCache[currentUser.uid]) {
-                        usersCache[currentUser.uid].avatar = downloadURL;
-                    }
-                    
-                    // ИСПРАВЛЕНО: Обновляем отображение аватара в интерфейсе
-                    renderAvatar(currentUserAvatarContainer, downloadURL, '');
-                    
-                    // ИСПРАВЛЕНО: Обновляем аватар во всех элементах интерфейса
-                    // Обновляем в списке чатов
-                    updateAllAvatars(userId, downloadURL);
-                    
-                    // Скрываем превью и кнопки
-                    avatarPreview.style.display = 'none';
-                    uploadAvatarBtn.style.display = 'none';
-                    selectedFile = null;
-                    avatarUpload.value = '';
-                    
-                    // Закрываем модалку
-                    if (avatarSelector) avatarSelector.style.display = 'none';
-                    if (overlay) overlay.style.display = 'none';
-                    
-                    alert('Аватар успешно обновлен!');
-                    
-                } catch (error) {
-                    console.error('Ошибка загрузки:', error);
-                    alert('Ошибка загрузки фото: ' + error.message);
-                } finally {
-                    uploadAvatarBtn.textContent = 'Сохранить фото';
-                    uploadAvatarBtn.disabled = false;
-                }
-            });
-
-            // ИСПРАВЛЕНО: Функция для обновления всех аватаров пользователя в интерфейсе
-            function updateAllAvatars(userId, avatarUrl) {
-                // Обновляем аватар в текущем блоке пользователя
-                const currentUserAvatar = currentUserAvatarContainer.querySelector('img');
-                if (currentUserAvatar) {
-                    currentUserAvatar.src = avatarUrl;
-                }
-                
-                // Обновляем в списке чатов
-                document.querySelectorAll(`.chat-item[data-otheruid="${userId}"] .avatar-img, .chat-item[data-otheruid="${userId}"] img`).forEach(img => {
-                    if (img.tagName === 'IMG') {
-                        img.src = avatarUrl;
-                    }
-                });
-                
-                // Обновляем в результатах поиска
-                document.querySelectorAll(`.search-result-item[data-uid="${userId}"] img`).forEach(img => {
-                    if (img) img.src = avatarUrl;
-                });
-            }
-
             if (currentUserBlock) {
                 currentUserBlock.addEventListener('click', () => {
                     if (avatarSelector) avatarSelector.style.display = 'block';
@@ -1084,10 +887,6 @@
                 closeAvatarBtn.addEventListener('click', () => {
                     avatarSelector.style.display = 'none';
                     overlay.style.display = 'none';
-                    avatarPreview.style.display = 'none';
-                    uploadAvatarBtn.style.display = 'none';
-                    selectedFile = null;
-                    avatarUpload.value = '';
                 });
             }
 
@@ -1101,10 +900,6 @@
                     editProfileModal.style.display = 'none';
                     searchResultsDiv.classList.remove('show');
                     overlay.style.display = 'none';
-                    avatarPreview.style.display = 'none';
-                    uploadAvatarBtn.style.display = 'none';
-                    selectedFile = null;
-                    avatarUpload.value = '';
                 });
             }
 
@@ -1534,7 +1329,7 @@
                         notificationSound.play().catch(e => console.log('Звук не воспроизвёлся', e));
                         if (Notification.permission === 'granted') {
                             new Notification('Новое сообщение в чате', {
-                                body: `${msg.senderName}: ${msg.text || 'Файл'}`,
+                                body: `${msg.senderName}: ${msg.text}`,
                                 icon: '/favicon.ico'
                             });
                         } else if (Notification.permission !== 'denied') {
@@ -1565,59 +1360,15 @@
                 }
             }
 
-            // Функция для форматирования размера файла
-            function formatFileSize(bytes) {
-                if (!bytes) return '';
-                if (bytes < 1024) return bytes + ' B';
-                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-            }
-
-            // Функция для определения иконки файла по типу
-            function getFileIcon(mimeType, fileName) {
-                if (!mimeType && !fileName) return 'fa-file';
-                
-                if (mimeType) {
-                    if (mimeType.startsWith('image/')) return 'fa-image';
-                    if (mimeType.startsWith('video/')) return 'fa-video';
-                    if (mimeType.startsWith('audio/')) return 'fa-music';
-                    if (mimeType === 'application/pdf') return 'fa-file-pdf';
-                    if (mimeType.includes('word') || fileName?.endsWith('.doc') || fileName?.endsWith('.docx')) return 'fa-file-word';
-                    if (mimeType.includes('excel') || fileName?.endsWith('.xls') || fileName?.endsWith('.xlsx')) return 'fa-file-excel';
-                    if (mimeType.includes('presentation') || fileName?.endsWith('.ppt') || fileName?.endsWith('.pptx')) return 'fa-file-powerpoint';
-                    if (mimeType.startsWith('text/')) return 'fa-file-alt';
-                    if (mimeType.includes('zip') || mimeType.includes('compressed')) return 'fa-file-archive';
-                }
-                
-                // Определяем по расширению файла
-                if (fileName) {
-                    const ext = fileName.split('.').pop().toLowerCase();
-                    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(ext)) return 'fa-image';
-                    if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv'].includes(ext)) return 'fa-video';
-                    if (['mp3', 'wav', 'ogg', 'flac'].includes(ext)) return 'fa-music';
-                    if (ext === 'pdf') return 'fa-file-pdf';
-                    if (['doc', 'docx'].includes(ext)) return 'fa-file-word';
-                    if (['xls', 'xlsx'].includes(ext)) return 'fa-file-excel';
-                    if (['ppt', 'pptx'].includes(ext)) return 'fa-file-powerpoint';
-                    if (['txt', 'css', 'js', 'html', 'json', 'xml'].includes(ext)) return 'fa-file-alt';
-                    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'fa-file-archive';
-                }
-                
-                return 'fa-file';
-            }
-
-            // ========== ИСПРАВЛЕНО: Функция отображения сообщений ==========
-            async function displayMessage(msg) {
+            function displayMessage(msg) {
                 if (!messagesArea) return;
                 if (messagesArea.innerHTML.includes('Выберите чат') || messagesArea.innerHTML.includes('Загрузка')) {
                     messagesArea.innerHTML = '';
                 }
-                
                 const isMy = msg.senderId === currentUser.uid;
                 const senderData = usersCache[msg.senderId] || {};
                 const avatar = senderData.avatar || 'fas fa-user';
                 let senderDisplay = msg.senderName || 'Пользователь';
-                
                 if (!isMy && senderData.name) {
                     senderDisplay = senderData.nickname ? `${senderData.name} (@${senderData.nickname})` : senderData.name;
                 } else if (isMy) {
@@ -1628,39 +1379,6 @@
                 msgDiv.className = `message ${isMy ? 'my-message' : 'other-message'}`;
                 const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
-                // Формируем содержимое сообщения
-                let contentHtml = '';
-                
-                // Добавляем текст сообщения, если он есть
-                if (msg.text && msg.text.trim() !== '') {
-                    contentHtml += `<div class="message-bubble">${msg.text}</div>`;
-                }
-                
-                // ИСПРАВЛЕНО: Добавляем файл, если он есть
-                if (msg.fileURL) {
-                    const fileIcon = getFileIcon(msg.fileType || '', msg.fileName || '');
-                    const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
-                    
-                    if (msg.fileType && msg.fileType.startsWith('image/')) {
-                        // Для изображений показываем превью
-                        contentHtml += `<div><img src="${msg.fileURL}" class="image-preview" onclick="window.open('${msg.fileURL}', '_blank')" alt="image" style="max-width:100%; max-height:300px; border-radius:10px; cursor:pointer; margin-top:5px;"></div>`;
-                    } else {
-                        contentHtml += `
-                            <div class="file-attachment" style="display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.05); border-radius:10px; padding:8px 12px; margin-top:5px;">
-                                <i class="fas ${fileIcon}" style="font-size:2rem;"></i>
-                                <div style="flex-grow:1; overflow:hidden;">
-                                    <div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${msg.fileName || 'Файл'}</div>
-                                    <div style="font-size:0.8rem; color:#65676b;">${fileSize}</div>
-                                </div>
-                                <a href="${msg.fileURL}" target="_blank" style="color:#0084ff; font-size:1.2rem;">
-                                    <i class="fas fa-download"></i>
-                                </a>
-                            </div>
-                        `;
-                    }
-                }
-
-                // Реакции
                 const reactions = msg.reactions || {};
                 const count = Object.keys(reactions).length;
                 const userReacted = reactions[currentUser.uid] ? true : false;
@@ -1670,17 +1388,16 @@
                     `<i class="${avatar}" style="font-size:1rem; width:20px; cursor:pointer;"></i>`;
 
                 msgDiv.innerHTML = `
-                    <div class="message-info" style="display:flex; align-items:center; gap:5px; margin-bottom:2px; cursor:pointer;" onclick="showProfile('${msg.senderId}')">
+                    <div class="message-info" onclick="showProfile('${msg.senderId}')">
                         ${avatarHtml}
                         <span>${senderDisplay} · ${time}</span>
                     </div>
-                    ${contentHtml}
-                    <button class="reaction-btn" data-message-id="${msg.id}" data-reacted="${userReacted}" style="background:none; border:none; font-size:1rem; cursor:pointer; padding:2px 8px; border-radius:20px; display:inline-flex; align-items:center; gap:4px; color:#65676b; margin-top:4px;">
+                    <div class="message-bubble">${msg.text}</div>
+                    <button class="reaction-btn" data-message-id="${msg.id}" data-reacted="${userReacted}">
                         👍 <span class="reaction-count">${count}</span>
                     </button>
                 `;
 
-                // Добавляем обработчик для реакций
                 const btn = msgDiv.querySelector('.reaction-btn');
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
@@ -1696,7 +1413,6 @@
                     }
                     await db.ref().update(updates);
                     
-                    // Обновляем счетчик
                     const newCount = reacted ? count - 1 : count + 1;
                     btn.querySelector('.reaction-count').textContent = newCount;
                 });
@@ -1704,99 +1420,6 @@
                 messagesArea.appendChild(msgDiv);
                 messagesArea.scrollTop = messagesArea.scrollHeight;
             }
-
-            // ========== ИСПРАВЛЕНО: Обработчик кнопки прикрепления файла ==========
-            fileBtn.addEventListener('click', () => {
-                fileInput.click();
-            });
-
-            // ========== ИСПРАВЛЕНО: Обработчик выбора файла ==========
-            fileInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file || !currentChatId) {
-                    fileInput.value = '';
-                    return;
-                }
-
-                // Проверка размера (до 20 МБ)
-                if (file.size > 20 * 1024 * 1024) {
-                    alert('Файл слишком большой (макс. 20 МБ)');
-                    fileInput.value = '';
-                    return;
-                }
-
-                // Показываем прогресс
-                uploadProgress.style.display = 'block';
-                uploadProgressBar.style.width = '0%';
-
-                // ИСПРАВЛЕНО: Используем правильный путь в Storage
-                const fileRef = storage.ref(`chat_files/${currentChatId}/${Date.now()}_${file.name}`);
-                const uploadTask = fileRef.put(file);
-
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        // Прогресс загрузки
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        uploadProgressBar.style.width = progress + '%';
-                    },
-                    (error) => {
-                        console.error('Ошибка загрузки файла:', error);
-                        alert('Ошибка загрузки файла: ' + error.message);
-                        uploadProgress.style.display = 'none';
-                        fileInput.value = '';
-                    },
-                    async () => {
-                        try {
-                            // Получаем URL загруженного файла
-                            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                            
-                            // ИСПРАВЛЕНО: Создаем сообщение с правильной структурой
-                            const msg = {
-                                senderId: currentUser.uid,
-                                senderName: currentUser.displayName || currentUser.email,
-                                text: '', // пустой текст для файлов
-                                fileURL: downloadURL,
-                                fileName: file.name,
-                                fileType: file.type,
-                                fileSize: file.size,
-                                timestamp: firebase.database.ServerValue.TIMESTAMP
-                            };
-                            
-                            // Отправляем сообщение
-                            const newMsgRef = messagesRef.child(currentChatId).push();
-                            await newMsgRef.set({ ...msg, id: newMsgRef.key });
-                            
-                            // ИСПРАВЛЕНО: Обновляем последнее сообщение в чате с правильным текстом
-                            let lastMsgText = '';
-                            if (file.type.startsWith('image/')) {
-                                lastMsgText = '📷 Фото';
-                            } else if (file.type.startsWith('video/')) {
-                                lastMsgText = '🎥 Видео';
-                            } else if (file.type.startsWith('audio/')) {
-                                lastMsgText = '🎵 Аудио';
-                            } else {
-                                lastMsgText = '📎 Файл: ' + file.name.substring(0, 20) + (file.name.length > 20 ? '...' : '');
-                            }
-                            
-                            await chatsRef.child(currentChatId).update({
-                                lastMessage: lastMsgText,
-                                lastMessageTime: firebase.database.ServerValue.TIMESTAMP
-                            });
-
-                            // Скрываем прогресс и очищаем input
-                            uploadProgress.style.display = 'none';
-                            uploadProgressBar.style.width = '0%';
-                            fileInput.value = '';
-                            
-                        } catch (error) {
-                            console.error('Ошибка при отправке файла:', error);
-                            alert('Ошибка при отправке файла: ' + error.message);
-                            uploadProgress.style.display = 'none';
-                            fileInput.value = '';
-                        }
-                    }
-                );
-            });
 
             // Отправка текстового сообщения
             safeAddListener(sendButton, 'click', async () => {
