@@ -28,13 +28,104 @@
         .other-message .message-bubble { background: #e4e6eb; color: black; }
         .message-info { font-size: 0.75rem; color: #65676b; display: flex; align-items: center; gap: 5px; margin-bottom: 2px; cursor: pointer; }
         .my-message .message-info { justify-content: flex-end; }
+        
+        /* Стили для ответов */
+        .reply-preview {
+            display: none;
+            background: #f0f2f5;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            position: relative;
+            border-left: 3px solid #0084ff;
+        }
+        .reply-preview button {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            border: none;
+            background: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #65676b;
+        }
+        .reply-preview button:hover {
+            color: #ff4444;
+        }
+        .reply-content {
+            font-size: 0.9rem;
+            color: #65676b;
+            padding-right: 20px;
+        }
+        .reply-content small {
+            color: #0084ff;
+            font-weight: bold;
+        }
+        
+        .replied-message {
+            background: rgba(0,0,0,0.05);
+            border-left: 2px solid #0084ff;
+            padding: 5px 10px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #65676b;
+            cursor: pointer;
+        }
+        .replied-message:hover {
+            background: rgba(0,0,0,0.1);
+        }
+        .dark-theme .replied-message {
+            background: rgba(255,255,255,0.1);
+            color: #aaa;
+        }
+        
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .message:hover .message-actions {
+            opacity: 1;
+        }
+        .message-action-btn {
+            background: none;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: #65676b;
+            padding: 2px 8px;
+            border-radius: 15px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .message-action-btn:hover {
+            background: rgba(0,0,0,0.1);
+        }
+        .dark-theme .message-action-btn {
+            color: #aaa;
+        }
+        .dark-theme .message-action-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .edited-label {
+            font-size: 0.7rem;
+            color: #999;
+            margin-left: 5px;
+            font-style: italic;
+        }
+        
         .chat-item, .search-result-item { padding: 10px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
         .chat-item:hover, .search-result-item:hover { background: #e4e6eb; }
         .chat-item.active { background: #e7f3ff; border-left: 3px solid #0084ff; }
         .current-chat-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; display: flex; align-items: center; gap: 10px; }
         .error-message { color: red; font-size: 0.9rem; }
         
-        /* Обновленные стили для панели стикеров */
+        /* Стили для панели стикеров */
         .sticker-panel {
             display: none;
             position: absolute;
@@ -230,7 +321,6 @@
             gap: 4px;
             color: #65676b;
             transition: background 0.2s;
-            margin-top: 4px;
         }
         .reaction-btn:hover {
             background: #e4e6eb;
@@ -287,7 +377,8 @@
         body.dark-theme .reset-modal,
         body.dark-theme .confirm-modal,
         body.dark-theme .edit-profile-modal,
-        body.dark-theme .search-results {
+        body.dark-theme .search-results,
+        body.dark-theme .reply-preview {
             background: #2d2d2d;
             border-color: #444;
             color: #e0e0e0;
@@ -341,6 +432,12 @@
         }
         body.dark-theme .overlay {
             background: rgba(0,0,0,0.7);
+        }
+        body.dark-theme .reply-content {
+            color: #aaa;
+        }
+        body.dark-theme .reply-content small {
+            color: #90caf9;
         }
 
         /* Мобильные улучшения */
@@ -405,7 +502,6 @@
                 max-width: 85%;
             }
             
-            /* Адаптация стикеров для мобильных */
             .sticker-panel {
                 width: 90vw;
                 left: 5%;
@@ -545,13 +641,19 @@
                     <div class="text-muted text-center py-5">Выберите чат слева</div>
                 </div>
                 <div id="messageInputContainer" style="display:none; padding:15px; border-top:1px solid #dee2e6; position: relative;">
+                    <!-- Панель предпросмотра ответа -->
+                    <div id="replyPreview" class="reply-preview">
+                        <button id="cancelReply">✕</button>
+                        <div id="replyContent" class="reply-content"></div>
+                    </div>
+                    
                     <div style="display: flex; gap: 5px; align-items: center;">
                         <button class="btn btn-outline-secondary" id="stickerBtn" type="button">😊</button>
                         <input type="text" id="messageInput" class="form-control" placeholder="Введите сообщение..." style="flex-grow:1;">
                         <button class="btn btn-primary" id="sendButton">Отправить</button>
                     </div>
                     
-                    <!-- Обновленная панель стикеров с категориями -->
+                    <!-- Панель стикеров с категориями -->
                     <div id="stickerPanel" class="sticker-panel">
                         <div class="sticker-categories" id="stickerCategories"></div>
                         <div class="sticker-grid" id="stickerGrid"></div>
@@ -612,7 +714,6 @@
                 '🔰 Символы': ['✅', '❌', '⚠️', '🚫', '🔞', '📛', '🔰', '♻️', '💯', '🔝', '🔜', '🔛', '🔚', '🔙', '🔄', '⏪', '⏩', '⏫', '⏬', '🆗']
             };
 
-            // Также создаем плоский массив всех стикеров для обратной совместимости
             const stickers = Object.values(stickerCategories).flat();
 
             const $ = id => document.getElementById(id);
@@ -690,9 +791,18 @@
             const searchInput = $('searchInput');
             const searchResultsDiv = $('searchResults');
             const backBtn = $('backBtn');
+            const replyPreview = $('replyPreview');
+            const replyContent = $('replyContent');
+            const cancelReply = $('cancelReply');
 
             // Текущая выбранная категория стикеров
             let currentStickerCategory = Object.keys(stickerCategories)[0];
+            
+            // НОВОЕ: переменная для ответа
+            let replyingTo = null;
+            
+            // НОВОЕ: переменная для редактирования
+            let editingMessage = null;
 
             // Тема
             function setTheme(theme) {
@@ -964,12 +1074,10 @@
                     btn.textContent = category;
                     btn.addEventListener('click', () => {
                         currentStickerCategory = category;
-                        // Обновляем активный класс у всех кнопок
                         document.querySelectorAll('.sticker-category-btn').forEach(b => {
                             b.classList.remove('active');
                         });
                         btn.classList.add('active');
-                        // Отображаем стикеры выбранной категории
                         renderStickersByCategory(category);
                     });
                     stickerCategoriesDiv.appendChild(btn);
@@ -1064,6 +1172,7 @@
                     stickerPanel.style.display = 'none';
                     searchResultsDiv.classList.remove('show');
                     overlay.style.display = 'none';
+                    cancelReplyFunction();
                 });
             }
 
@@ -1511,6 +1620,10 @@
                 });
 
                 chatContainer.classList.add('mobile-chat-open');
+                
+                // Сбрасываем ответ и редактирование при открытии нового чата
+                cancelReplyFunction();
+                cancelEditFunction();
             }
 
             async function updateChatHeaderStatus(uid) {
@@ -1524,15 +1637,57 @@
                 }
             }
 
+            // НОВОЕ: функция отмены ответа
+            function cancelReplyFunction() {
+                replyingTo = null;
+                if (replyPreview) {
+                    replyPreview.style.display = 'none';
+                }
+                if (replyContent) {
+                    replyContent.innerHTML = '';
+                }
+            }
+            
+            // НОВОЕ: функция отмены редактирования
+            function cancelEditFunction() {
+                editingMessage = null;
+                if (sendButton) {
+                    sendButton.textContent = 'Отправить';
+                }
+                if (messageInput) {
+                    messageInput.placeholder = 'Введите сообщение...';
+                }
+            }
+
+            // НОВОЕ: обработчик отмены ответа
+            if (cancelReply) {
+                cancelReply.addEventListener('click', cancelReplyFunction);
+            }
+
+            // НОВОЕ: функция для перехода к отвеченному сообщению
+            function scrollToMessage(messageId) {
+                const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                if (messageElement) {
+                    messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    messageElement.style.backgroundColor = 'rgba(0,132,255,0.1)';
+                    setTimeout(() => {
+                        messageElement.style.backgroundColor = '';
+                    }, 2000);
+                }
+            }
+
+            // НОВАЯ: функция отображения сообщения с ответами и редактированием
             function displayMessage(msg) {
                 if (!messagesArea) return;
                 if (messagesArea.innerHTML.includes('Выберите чат') || messagesArea.innerHTML.includes('Загрузка')) {
                     messagesArea.innerHTML = '';
                 }
+                
                 const isMy = msg.senderId === currentUser.uid;
                 const senderData = usersCache[msg.senderId] || {};
                 const avatar = senderData.avatar || 'fas fa-user';
                 let senderDisplay = msg.senderName || 'Пользователь';
+                
                 if (!isMy && senderData.name) {
                     senderDisplay = senderData.nickname ? `${senderData.name} (@${senderData.nickname})` : senderData.name;
                 } else if (isMy) {
@@ -1541,6 +1696,8 @@
 
                 const msgDiv = document.createElement('div');
                 msgDiv.className = `message ${isMy ? 'my-message' : 'other-message'}`;
+                msgDiv.setAttribute('data-message-id', msg.id);
+                
                 const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
                 const reactions = msg.reactions || {};
@@ -1551,57 +1708,206 @@
                     `<img src="${avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover; cursor:pointer;">` : 
                     `<i class="${avatar}" style="font-size:1rem; width:20px; cursor:pointer;"></i>`;
 
-                msgDiv.innerHTML = `
+                // Формируем HTML для ответа, если есть
+                let replyHtml = '';
+                if (msg.replyTo) {
+                    replyHtml = `
+                        <div class="replied-message" onclick="scrollToMessage('${msg.replyTo.id}')">
+                            <small>${msg.replyTo.sender}:</small><br>
+                            ${msg.replyTo.text.substring(0,50)}${msg.replyTo.text.length > 50 ? '...' : ''}
+                        </div>
+                    `;
+                }
+
+                // HTML для сообщения
+                let messageHtml = `
                     <div class="message-info" onclick="showProfile('${msg.senderId}')">
                         ${avatarHtml}
                         <span>${senderDisplay} · ${time}</span>
+                        ${msg.edited ? '<span class="edited-label">(ред.)</span>' : ''}
                     </div>
+                    ${replyHtml}
                     <div class="message-bubble">${msg.text}</div>
-                    <button class="reaction-btn" data-message-id="${msg.id}" data-reacted="${userReacted}">
-                        👍 <span class="reaction-count">${count}</span>
-                    </button>
                 `;
 
-                const btn = msgDiv.querySelector('.reaction-btn');
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const messageId = btn.dataset.messageId;
-                    const reacted = btn.dataset.reacted === 'true';
-                    const updates = {};
-                    if (reacted) {
-                        updates[`messages/${currentChatId}/${messageId}/reactions/${currentUser.uid}`] = null;
-                        btn.dataset.reacted = 'false';
-                    } else {
-                        updates[`messages/${currentChatId}/${messageId}/reactions/${currentUser.uid}`] = true;
-                        btn.dataset.reacted = 'true';
-                    }
-                    await db.ref().update(updates);
-                    
-                    const newCount = reacted ? count - 1 : count + 1;
-                    btn.querySelector('.reaction-count').textContent = newCount;
-                });
+                // Добавляем кнопки действий (только для своих сообщений)
+                if (isMy) {
+                    messageHtml += `
+                        <div class="message-actions">
+                            <button class="message-action-btn reply-to-btn" data-message-id="${msg.id}" data-message-text="${msg.text}" data-sender="${senderDisplay}">
+                                ↩️ Ответить
+                            </button>
+                            <button class="message-action-btn edit-btn" data-message-id="${msg.id}" data-message-text="${msg.text}">
+                                ✏️ Ред.
+                            </button>
+                            <button class="message-action-btn delete-btn" data-message-id="${msg.id}">
+                                🗑️ Удал.
+                            </button>
+                            <button class="message-action-btn reaction-btn" data-message-id="${msg.id}" data-reacted="${userReacted}">
+                                👍 <span class="reaction-count">${count}</span>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    messageHtml += `
+                        <div class="message-actions">
+                            <button class="message-action-btn reply-to-btn" data-message-id="${msg.id}" data-message-text="${msg.text}" data-sender="${senderDisplay}">
+                                ↩️ Ответить
+                            </button>
+                            <button class="message-action-btn reaction-btn" data-message-id="${msg.id}" data-reacted="${userReacted}">
+                                👍 <span class="reaction-count">${count}</span>
+                            </button>
+                        </div>
+                    `;
+                }
+
+                msgDiv.innerHTML = messageHtml;
+
+                // Обработчик ответа
+                const replyBtn = msgDiv.querySelector('.reply-to-btn');
+                if (replyBtn) {
+                    replyBtn.addEventListener('click', () => {
+                        replyingTo = {
+                            id: msg.id,
+                            text: msg.text,
+                            sender: senderDisplay
+                        };
+                        replyContent.innerHTML = `Ответ <small>${replyingTo.sender}</small>: ${replyingTo.text.substring(0,50)}${replyingTo.text.length > 50 ? '...' : ''}`;
+                        replyPreview.style.display = 'block';
+                        messageInput.focus();
+                        
+                        // Отменяем редактирование, если было
+                        cancelEditFunction();
+                    });
+                }
+
+                // Обработчик редактирования (только для своих)
+                const editBtn = msgDiv.querySelector('.edit-btn');
+                if (editBtn) {
+                    editBtn.addEventListener('click', () => {
+                        editingMessage = {
+                            id: msg.id,
+                            text: msg.text
+                        };
+                        messageInput.value = msg.text;
+                        sendButton.textContent = 'Сохранить';
+                        messageInput.placeholder = 'Редактирование...';
+                        messageInput.focus();
+                        
+                        // Отменяем ответ, если был
+                        cancelReplyFunction();
+                    });
+                }
+
+                // Обработчик удаления (только для своих)
+                const deleteBtn = msgDiv.querySelector('.delete-btn');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', async () => {
+                        if (confirm('Удалить сообщение?')) {
+                            await messagesRef.child(currentChatId).child(msg.id).remove();
+                            msgDiv.remove();
+                            
+                            // Обновляем последнее сообщение в чате
+                            const lastMsgSnapshot = await messagesRef.child(currentChatId).orderByChild('timestamp').limitToLast(1).once('value');
+                            const lastMsg = lastMsgSnapshot.val();
+                            if (lastMsg) {
+                                const lastMsgKey = Object.keys(lastMsg)[0];
+                                await chatsRef.child(currentChatId).update({
+                                    lastMessage: lastMsg[lastMsgKey].text,
+                                    lastMessageTime: lastMsg[lastMsgKey].timestamp
+                                });
+                            } else {
+                                await chatsRef.child(currentChatId).update({
+                                    lastMessage: '',
+                                    lastMessageTime: firebase.database.ServerValue.TIMESTAMP
+                                });
+                            }
+                        }
+                    });
+                }
+
+                // Обработчик реакций
+                const reactionBtn = msgDiv.querySelector('.reaction-btn');
+                if (reactionBtn) {
+                    reactionBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const messageId = reactionBtn.dataset.messageId;
+                        const reacted = reactionBtn.dataset.reacted === 'true';
+                        const updates = {};
+                        if (reacted) {
+                            updates[`messages/${currentChatId}/${messageId}/reactions/${currentUser.uid}`] = null;
+                            reactionBtn.dataset.reacted = 'false';
+                        } else {
+                            updates[`messages/${currentChatId}/${messageId}/reactions/${currentUser.uid}`] = true;
+                            reactionBtn.dataset.reacted = 'true';
+                        }
+                        await db.ref().update(updates);
+                        
+                        const countSpan = reactionBtn.querySelector('.reaction-count');
+                        const newCount = reacted ? parseInt(countSpan.textContent) - 1 : parseInt(countSpan.textContent) + 1;
+                        countSpan.textContent = newCount;
+                    });
+                }
 
                 messagesArea.appendChild(msgDiv);
                 messagesArea.scrollTop = messagesArea.scrollHeight;
             }
 
-            // Отправка текстового сообщения
+            // Отправка сообщения (с поддержкой ответов и редактирования)
             safeAddListener(sendButton, 'click', async () => {
                 const text = messageInput?.value.trim() || '';
                 if (!text || !currentChatId) return;
+                
+                // Если редактируем сообщение
+                if (editingMessage) {
+                    await messagesRef.child(currentChatId).child(editingMessage.id).update({
+                        text: text,
+                        edited: true,
+                        editedAt: firebase.database.ServerValue.TIMESTAMP
+                    });
+                    
+                    // Обновляем последнее сообщение в чате
+                    await chatsRef.child(currentChatId).update({
+                        lastMessage: text,
+                        lastMessageTime: firebase.database.ServerValue.TIMESTAMP
+                    });
+                    
+                    // Очищаем
+                    messageInput.value = '';
+                    cancelEditFunction();
+                    return;
+                }
+                
+                // Создаем новое сообщение
                 const msg = {
                     senderId: currentUser.uid,
                     senderName: currentUser.displayName || currentUser.email,
                     text: text,
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 };
+                
+                // Добавляем информацию об ответе, если есть
+                if (replyingTo) {
+                    msg.replyTo = {
+                        id: replyingTo.id,
+                        text: replyingTo.text,
+                        sender: replyingTo.sender
+                    };
+                }
+                
                 const newMsgRef = messagesRef.child(currentChatId).push();
                 await newMsgRef.set({ ...msg, id: newMsgRef.key });
+                
+                // Обновляем последнее сообщение в чате
                 await chatsRef.child(currentChatId).update({
                     lastMessage: text,
                     lastMessageTime: msg.timestamp
                 });
-                if (messageInput) messageInput.value = '';
+                
+                // Очищаем
+                messageInput.value = '';
+                cancelReplyFunction();
+                
                 if (currentChatId) {
                     db.ref(`chats/${currentChatId}/typing/${currentUser.uid}`).remove();
                 }
@@ -1609,7 +1915,10 @@
 
             if (messageInput) {
                 messageInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter' && sendButton) sendButton.click();
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendButton.click();
+                    }
                 });
             }
 
@@ -1626,7 +1935,9 @@
                 });
             }
 
+            // Добавляем функции в глобальную область для onclick
             window.showProfile = showProfile;
+            window.scrollToMessage = scrollToMessage;
         })();
     </script>
 </body>
