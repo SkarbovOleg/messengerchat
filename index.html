@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Все стили без изменений */
         body {
             transition: background-color 0.3s, color 0.3s;
         }
@@ -850,7 +851,7 @@
 
             const stickers = Object.values(stickerCategories).flat();
 
-            // ========== НОВОЕ: Определение тем ==========
+            // ========== Определение тем ==========
             const themes = {
                 light: {
                     name: '☀️ Светлая',
@@ -959,7 +960,7 @@
                 }
             };
 
-            // НОВОЕ: Функция применения темы
+            // Функция применения темы
             function applyTheme(themeName) {
                 const theme = themes[themeName];
                 if (!theme) return;
@@ -1003,7 +1004,7 @@
                 }
             }
 
-            // НОВОЕ: Создаем CSS переменные
+            // Создаем CSS переменные
             const style = document.createElement('style');
             style.textContent = `
                 :root {
@@ -1272,7 +1273,7 @@
             const replyContent = $('replyContent');
             const cancelReply = $('cancelReply');
             
-            // НОВЫЕ элементы настроек
+            // Элементы настроек
             const settingsBtn = $('settingsBtn');
             const settingsModal = $('settingsModal');
             const closeSettingsBtn = $('closeSettingsBtn');
@@ -1333,7 +1334,11 @@
                 
                 // Enter для отправки
                 if (messageInput) {
-                    messageInput.removeEventListener('keypress', messageInput._keypressHandler);
+                    // Удаляем старый обработчик
+                    if (messageInput._keypressHandler) {
+                        messageInput.removeEventListener('keypress', messageInput._keypressHandler);
+                    }
+                    
                     if (userSettings.enterToSend) {
                         messageInput._keypressHandler = (e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
@@ -1342,12 +1347,6 @@
                             }
                         };
                         messageInput.addEventListener('keypress', messageInput._keypressHandler);
-                    } else {
-                        messageInput._keypressHandler = (e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                // Обычное поведение Enter - перевод строки
-                            }
-                        };
                     }
                 }
                 
@@ -1357,7 +1356,7 @@
                 }
             }
 
-            // НОВОЕ: Открытие настроек
+            // Открытие настроек
             if (settingsBtn) {
                 settingsBtn.addEventListener('click', () => {
                     settingsModal.style.display = 'block';
@@ -1403,7 +1402,7 @@
                 });
             }
 
-            // НОВОЕ: Закрытие настроек
+            // Закрытие настроек
             if (closeSettingsBtn) {
                 closeSettingsBtn.addEventListener('click', () => {
                     settingsModal.style.display = 'none';
@@ -1411,7 +1410,7 @@
                 });
             }
 
-            // НОВОЕ: Сохранение настроек при изменении
+            // Сохранение настроек при изменении
             if (settingsThemeSelector) {
                 settingsThemeSelector.addEventListener('change', (e) => {
                     applyTheme(e.target.value);
@@ -1461,10 +1460,6 @@
                 showTimeToggle.addEventListener('change', (e) => {
                     userSettings.showTime = e.target.checked;
                     localStorage.setItem('userSettings', JSON.stringify(userSettings));
-                    // Обновляем отображение сообщений
-                    if (currentChatId) {
-                        refreshMessages();
-                    }
                 });
             }
 
@@ -1472,8 +1467,6 @@
                 showOnlineStatusToggle.addEventListener('change', (e) => {
                     userSettings.showOnlineStatus = e.target.checked;
                     localStorage.setItem('userSettings', JSON.stringify(userSettings));
-                    // Обновляем статусы в чатах
-                    refreshFullChatList();
                 });
             }
 
@@ -1526,7 +1519,7 @@
                 });
             }
 
-            // НОВОЕ: Загружаем сохраненную тему
+            // Загружаем сохраненную тему
             const savedTheme = localStorage.getItem('selectedTheme') || 'light';
             applyTheme(savedTheme);
 
