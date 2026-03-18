@@ -893,8 +893,8 @@
                         <span id="currentUserStatus" class="last-seen"></span>
                     </div>
                     <div class="d-flex gap-2">
+                        <!-- ТОЛЬКО КНОПКА НАСТРОЕК (кнопка темы удалена) -->
                         <button class="settings-btn" id="settingsBtn" title="Настройки">⚙️</button>
-                        <button class="btn btn-sm btn-outline-secondary" id="themeToggle" title="Переключить тему">🌙</button>
                         <button class="btn btn-outline-danger btn-sm" id="logoutBtn">Выйти</button>
                     </div>
                 </div>
@@ -995,7 +995,6 @@
 
             // ===== 10 ТЕМ =====
             const themes = {
-                // Старые темы
                 light: {
                     name: '☀️ Светлая',
                     colors: {
@@ -1101,7 +1100,6 @@
                         inputBackground: '#ffffff'
                     }
                 },
-                // Новые темы
                 lavender: {
                     name: '💜 Лаванда',
                     colors: {
@@ -1241,11 +1239,6 @@
                 
                 // Сохраняем выбранную тему
                 localStorage.setItem('selectedTheme', themeName);
-                
-                // Обновляем текст кнопки
-                if (themeToggle) {
-                    themeToggle.textContent = themeName === 'dark' ? '☀️' : '🌙';
-                }
                 
                 // Обновляем селектор в настройках
                 if (settingsThemeSelector) {
@@ -1480,7 +1473,6 @@
             const currentUserStatus = $('currentUserStatus');
             const currentChatStatus = $('currentChatStatus');
             const typingIndicator = $('typingIndicator');
-            const themeToggle = $('themeToggle');
             const profileModal = $('profileModal');
             const profileAvatarContainer = $('profileAvatarContainer');
             const profileName = $('profileName');
@@ -1745,28 +1737,9 @@
             let replyingTo = null;
             let editingMessage = null;
 
-            // Тема
-            function setTheme(theme) {
-                applyTheme(theme);
-            }
-            
+            // Загружаем сохраненную тему
             const savedTheme = localStorage.getItem('selectedTheme') || 'light';
-            setTheme(savedTheme);
-            
-            if (themeToggle) {
-                themeToggle.addEventListener('click', () => {
-                    const currentTheme = localStorage.getItem('selectedTheme') || 'light';
-                    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-                    setTheme(newTheme);
-                    
-                    // Обновляем селектор в настройках, если он открыт
-                    if (settingsThemeSelector) {
-                        settingsThemeSelector.value = newTheme;
-                    }
-                    
-                    saveSettings();
-                });
-            }
+            applyTheme(savedTheme);
 
             let currentUser = null;
             let currentChatId = null;
@@ -2131,7 +2104,7 @@
                 registerTab?.classList.add('active');
                 loginTab?.classList.remove('active');
                 if (registerForm) registerForm.style.display = 'block';
-                if (registerForm) registerForm.style.display = 'none';
+                if (loginForm) loginForm.style.display = 'none';
                 clearErrors();
             });
             
