@@ -33,16 +33,111 @@
         .chat-item.active { background: #e7f3ff; border-left: 3px solid #0084ff; }
         .current-chat-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; display: flex; align-items: center; gap: 10px; }
         .error-message { color: red; font-size: 0.9rem; }
-        .sticker-panel { display: none; position: absolute; bottom: 70px; left: 0; background: white; border: 1px solid #ccc; border-radius: 10px; padding: 10px; width: 250px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000; }
-        .sticker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-        .sticker { font-size: 1.8rem; cursor: pointer; text-align: center; padding: 5px; border-radius: 5px; }
-        .sticker:hover { background: #e4e6eb; }
+        
+        /* Обновленные стили для панели стикеров */
+        .sticker-panel {
+            display: none;
+            position: absolute;
+            bottom: 70px;
+            left: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 10px;
+            width: 350px;
+            max-width: 90vw;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .sticker-categories {
+            display: flex;
+            overflow-x: auto;
+            gap: 5px;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            scrollbar-width: thin;
+        }
+        
+        .sticker-category-btn {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            background: #f8f9fa;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .sticker-category-btn:hover {
+            background: #e4e6eb;
+        }
+        
+        .sticker-category-btn.active {
+            background: #0084ff;
+            color: white;
+            border-color: #0084ff;
+        }
+        
+        .sticker-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+        
+        .sticker {
+            font-size: 1.8rem;
+            cursor: pointer;
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+        
+        .sticker:hover {
+            background: #e4e6eb;
+            transform: scale(1.1);
+        }
+        
+        /* Темная тема для стикеров */
+        body.dark-theme .sticker-panel {
+            background: #2d2d2d;
+            border-color: #444;
+        }
+        
+        body.dark-theme .sticker-categories {
+            border-bottom-color: #444;
+        }
+        
+        body.dark-theme .sticker-category-btn {
+            background: #3a3a3a;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+        
+        body.dark-theme .sticker-category-btn:hover {
+            background: #4a4a4a;
+        }
+        
+        body.dark-theme .sticker-category-btn.active {
+            background: #0d47a1;
+            border-color: #0d47a1;
+            color: white;
+        }
+        
+        body.dark-theme .sticker:hover {
+            background: #4a4a4a;
+        }
+
         .avatar-selector { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.3); z-index: 2000; max-width: 400px; width: 90%; }
         .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px; }
         .avatar-option { font-size: 2.5rem; cursor: pointer; text-align: center; padding: 5px; border-radius: 8px; }
         .avatar-option:hover { background: #e7f3ff; }
-        .avatar-upload { margin-top: 10px; }
-        .avatar-preview { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 10px auto; display: none; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; }
         .current-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px; border-radius: 8px; margin-bottom: 15px; }
         .current-user:hover { background: #e4e6eb; }
@@ -227,11 +322,6 @@
         body.dark-theme .message-info {
             color: #aaa;
         }
-        body.dark-theme .sticker:hover,
-        body.dark-theme .avatar-option:hover,
-        body.dark-theme .reaction-btn:hover {
-            background: #4a4a4a;
-        }
         body.dark-theme .btn-outline-secondary {
             color: #e0e0e0;
             border-color: #666;
@@ -313,6 +403,17 @@
             }
             .message-bubble {
                 max-width: 85%;
+            }
+            
+            /* Адаптация стикеров для мобильных */
+            .sticker-panel {
+                width: 90vw;
+                left: 5%;
+                right: 5%;
+            }
+            
+            .sticker-grid {
+                grid-template-columns: repeat(5, 1fr);
             }
         }
     </style>
@@ -449,7 +550,10 @@
                         <input type="text" id="messageInput" class="form-control" placeholder="Введите сообщение..." style="flex-grow:1;">
                         <button class="btn btn-primary" id="sendButton">Отправить</button>
                     </div>
+                    
+                    <!-- Обновленная панель стикеров с категориями -->
                     <div id="stickerPanel" class="sticker-panel">
+                        <div class="sticker-categories" id="stickerCategories"></div>
                         <div class="sticker-grid" id="stickerGrid"></div>
                     </div>
                 </div>
@@ -494,7 +598,22 @@
                 'fas fa-book', 'fas fa-coffee', 'fas fa-utensils', 'fas fa-futbol', 'fas fa-gem'
             ];
 
-            const stickers = ['😊', '😂', '😍', '👍', '🎉', '😢', '😡', '🤔', '🙏', '🔥', '⭐', '💔', '✅', '❌', '❗', '❓', '📌', '💡', '🎈', '🏆'];
+            // НОВЫЕ СТИКЕРЫ С КАТЕГОРИЯМИ
+            const stickerCategories = {
+                '😊 Смайлики': ['😊', '😂', '😍', '🥰', '😘', '😎', '🤩', '😇', '🥳', '😏', '😢', '😭', '😤', '😠', '🤬', '😱', '🥶', '🤯', '😴', '🥴'],
+                '👋 Жесты': ['👍', '👎', '👊', '✌️', '🤞', '🖖', '🤘', '🤙', '👌', '🤌', '🙏', '🤝', '💪', '🫂', '👏', '🤲', '👐', '🤝', '✍️', '👋'],
+                '❤️ Сердца': ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '💔', '❤️‍🔥', '❤️‍🩹', '💖', '💗', '💓', '💞', '💕', '💝', '💘', '💟', '❣️'],
+                '🍔 Еда': ['🍕', '🍔', '🌭', '🥨', '🥗', '🍣', '🍜', '🍦', '🍩', '☕', '🍺', '🍷', '🥂', '🍪', '🍫', '🍿', '🥟', '🍱', '🥮', '🍰'],
+                '🐱 Животные': ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🦁', '🐮', '🦒', '🐸', '🐧', '🐦', '🐤', '🦆', '🦅', '🐺', '🐝'],
+                '🌍 Природа': ['🌞', '🌈', '☁️', '⛈️', '❄️', '🔥', '💧', '🌊', '🌋', '⭐', '🌙', '☀️', '🌨️', '🌩️', '🌪️', '🌫️', '🌬️', '💫', '✨', '🌟'],
+                '⚽ Спорт': ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🥊', '🥋', '⛳', '🏂', '🚴', '🏋️', '🤸', '🤾', '🏊', '🧗'],
+                '📱 Техника': ['📱', '💻', '⌨️', '🖥️', '📷', '🎥', '📹', '📼', '🔊', '🎧', '⌚', '💡', '🔦', '🕯️', '🧸', '📺', '📻', '🎮', '🕹️', '💽'],
+                '🎵 Музыка': ['🎵', '🎶', '🎼', '🎤', '🎧', '🎸', '🎹', '🥁', '🎷', '🎺', '🪘', '🪕', '🎻', '🎙️', '🎚️', '🎛️', '📻', '📀', '💿', '🔊'],
+                '🔰 Символы': ['✅', '❌', '⚠️', '🚫', '🔞', '📛', '🔰', '♻️', '💯', '🔝', '🔜', '🔛', '🔚', '🔙', '🔄', '⏪', '⏩', '⏫', '⏬', '🆗']
+            };
+
+            // Также создаем плоский массив всех стикеров для обратной совместимости
+            const stickers = Object.values(stickerCategories).flat();
 
             const $ = id => document.getElementById(id);
             const authContainer = $('authContainer');
@@ -522,6 +641,7 @@
             const stickerBtn = $('stickerBtn');
             const stickerPanel = $('stickerPanel');
             const stickerGrid = $('stickerGrid');
+            const stickerCategoriesDiv = $('stickerCategories');
             const overlay = $('overlay');
             const avatarSelector = $('avatarSelector');
             const avatarGrid = $('avatarGrid');
@@ -570,6 +690,9 @@
             const searchInput = $('searchInput');
             const searchResultsDiv = $('searchResults');
             const backBtn = $('backBtn');
+
+            // Текущая выбранная категория стикеров
+            let currentStickerCategory = Object.keys(stickerCategories)[0];
 
             // Тема
             function setTheme(theme) {
@@ -828,28 +951,68 @@
                 }
             });
 
-            // Стикеры
-            if (stickerGrid) {
-                stickers.forEach(sticker => {
+            // Функция для отображения категорий стикеров
+            function renderStickerCategories() {
+                if (!stickerCategoriesDiv) return;
+                
+                stickerCategoriesDiv.innerHTML = '';
+                const categories = Object.keys(stickerCategories);
+                
+                categories.forEach(category => {
+                    const btn = document.createElement('button');
+                    btn.className = `sticker-category-btn ${category === currentStickerCategory ? 'active' : ''}`;
+                    btn.textContent = category;
+                    btn.addEventListener('click', () => {
+                        currentStickerCategory = category;
+                        // Обновляем активный класс у всех кнопок
+                        document.querySelectorAll('.sticker-category-btn').forEach(b => {
+                            b.classList.remove('active');
+                        });
+                        btn.classList.add('active');
+                        // Отображаем стикеры выбранной категории
+                        renderStickersByCategory(category);
+                    });
+                    stickerCategoriesDiv.appendChild(btn);
+                });
+            }
+
+            // Функция для отображения стикеров по категории
+            function renderStickersByCategory(category) {
+                if (!stickerGrid) return;
+                
+                const stickersList = stickerCategories[category] || [];
+                stickerGrid.innerHTML = '';
+                
+                stickersList.forEach(sticker => {
                     const div = document.createElement('div');
                     div.classList.add('sticker');
                     div.textContent = sticker;
+                    div.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (messageInput) {
+                            messageInput.value += sticker;
+                        }
+                        if (stickerPanel) {
+                            stickerPanel.style.display = 'none';
+                        }
+                    });
                     stickerGrid.appendChild(div);
                 });
-                stickerGrid.addEventListener('click', e => {
-                    const stickerDiv = e.target.closest('.sticker');
-                    if (!stickerDiv) return;
-                    e.stopPropagation();
-                    if (messageInput) messageInput.value += stickerDiv.textContent;
-                    if (stickerPanel) stickerPanel.style.display = 'none';
-                });
             }
+
+            // Инициализация стикеров
+            if (stickerGrid) {
+                renderStickerCategories();
+                renderStickersByCategory(currentStickerCategory);
+            }
+
             if (stickerBtn && stickerPanel) {
                 stickerBtn.addEventListener('click', e => {
                     e.stopPropagation();
                     stickerPanel.style.display = stickerPanel.style.display === 'none' ? 'block' : 'none';
                 });
             }
+            
             document.addEventListener('click', e => {
                 if (stickerPanel && stickerBtn && !stickerPanel.contains(e.target) && !stickerBtn.contains(e.target)) {
                     stickerPanel.style.display = 'none';
@@ -898,6 +1061,7 @@
                     resetModal.style.display = 'none';
                     confirmModal.style.display = 'none';
                     editProfileModal.style.display = 'none';
+                    stickerPanel.style.display = 'none';
                     searchResultsDiv.classList.remove('show');
                     overlay.style.display = 'none';
                 });
