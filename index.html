@@ -23,6 +23,8 @@
         .my-message { align-items: flex-end; }
         .other-message { align-items: flex-start; }
         .message-bubble { max-width: 70%; padding: 10px 15px; border-radius: 18px; word-wrap: break-word; }
+        .my-message .message-bubble { background: #0084ff; color: white; }
+        .other-message .message-bubble { background: #e4e6eb; color: black; }
         .message-info { font-size: 0.75rem; display: flex; align-items: center; gap: 5px; margin-bottom: 2px; cursor: pointer; }
         .my-message .message-info { justify-content: flex-end; }
         
@@ -159,12 +161,9 @@
             transform: scale(1.1);
         }
 
-        /* Селектор тем */
+        /* Селектор тем (в настройках) */
         .theme-selector {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
+            margin-bottom: 15px;
         }
         
         .theme-selector select {
@@ -174,6 +173,182 @@
             cursor: pointer;
             font-size: 14px;
             outline: none;
+            width: 100%;
+        }
+
+        /* Стили для настроек */
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            z-index: 2001;
+            max-width: 400px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid;
+        }
+        
+        .settings-header h3 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        
+        .settings-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        
+        .settings-section {
+            margin-bottom: 25px;
+        }
+        
+        .settings-section h4 {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .settings-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 5px 0;
+        }
+        
+        .settings-option label {
+            font-size: 1rem;
+        }
+        
+        /* Переключатель (toggle) */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #0084ff;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        /* Слайдер громкости */
+        .volume-slider {
+            width: 150px;
+            cursor: pointer;
+        }
+        
+        .color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid;
+            cursor: pointer;
+        }
+        
+        .color-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+        
+        .color-option.selected {
+            border-color: #0084ff;
+        }
+        
+        /* Индикатор уведомлений */
+        .notification-badge {
+            background: red;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            position: absolute;
+            top: -5px;
+            right: -5px;
+        }
+        
+        /* Кнопка настроек */
+        .settings-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        
+        .settings-btn:hover {
+            background-color: var(--hover-color);
         }
 
         .avatar-selector { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 10px; padding: 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.3); z-index: 2000; max-width: 400px; width: 90%; }
@@ -217,40 +392,20 @@
         }
 
         /* Модальные окна */
-        .profile-modal, .password-modal, .reset-modal, .confirm-modal, .edit-profile-modal {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
-            z-index: 2001;
-            max-width: 400px;
-            width: 90%;
-            text-align: center;
+        .profile-modal, .password-modal, .reset-modal, .confirm-modal, .edit-profile-modal, .settings-modal {
+            background-color: var(--surface-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
         }
-        .profile-modal i, .profile-modal img {
-            font-size: 4rem;
-            width: 4rem;
-            height: 4rem;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-bottom: 10px;
-        }
-        .profile-modal h3 {
-            margin-bottom: 5px;
-        }
-        .profile-modal p {
-            margin: 5px 0;
-        }
-        .password-modal input, .reset-modal input, .edit-profile-modal input {
+
+        .password-modal input, .reset-modal input, .edit-profile-modal input, .settings-modal input {
             width: 100%;
             padding: 8px;
             margin: 8px 0;
-            border: 1px solid;
+            border: 1px solid var(--border-color);
             border-radius: 5px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
         }
 
         .reaction-btn {
@@ -265,6 +420,7 @@
             gap: 4px;
             transition: background 0.2s;
             margin-top: 4px;
+            color: var(--text-secondary);
         }
 
         .search-container {
@@ -276,19 +432,20 @@
             top: 100%;
             left: 0;
             right: 0;
-            border: 1px solid;
+            border: 1px solid var(--border-color);
             border-radius: 5px;
             max-height: 200px;
             overflow-y: auto;
             z-index: 1000;
             display: none;
+            background-color: var(--surface-color);
         }
         .search-results.show {
             display: block;
         }
         .search-result-item {
             padding: 8px 12px;
-            border-bottom: 1px solid;
+            border-bottom: 1px solid var(--border-color);
         }
         .search-result-item:last-child {
             border-bottom: none;
@@ -370,15 +527,127 @@
 <body>
     <div id="overlay" class="overlay"></div>
 
-    <!-- Селектор тем -->
-    <div class="theme-selector">
-        <select id="themeSelector">
-            <option value="light">☀️ Светлая</option>
-            <option value="dark">🌙 Темная</option>
-            <option value="ocean">🌊 Океан</option>
-            <option value="forest">🌲 Лес</option>
-            <option value="sunset">🌅 Закат</option>
-        </select>
+    <!-- Модальное окно настроек -->
+    <div id="settingsModal" class="settings-modal">
+        <div class="settings-header">
+            <h3>⚙️ Настройки</h3>
+            <button class="settings-close" id="closeSettingsBtn">✕</button>
+        </div>
+        
+        <div class="settings-section">
+            <h4>🎨 Тема оформления</h4>
+            <div class="theme-selector">
+                <select id="settingsThemeSelector">
+                    <option value="light">☀️ Светлая</option>
+                    <option value="dark">🌙 Темная</option>
+                    <option value="ocean">🌊 Океан</option>
+                    <option value="forest">🌲 Лес</option>
+                    <option value="sunset">🌅 Закат</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h4>🔔 Уведомления</h4>
+            <div class="settings-option">
+                <label>Звук уведомлений</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="notificationSoundToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="settings-option">
+                <label>Громкость</label>
+                <input type="range" id="notificationVolume" class="volume-slider" min="0" max="100" value="50">
+            </div>
+            <div class="settings-option">
+                <label>Всплывающие уведомления</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="popupNotificationsToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h4>💬 Сообщения</h4>
+            <div class="settings-option">
+                <label>Отправка по Enter</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="enterToSendToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="settings-option">
+                <label>Предпросмотр ссылок</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="linkPreviewToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="settings-option">
+                <label>Показывать время сообщений</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="showTimeToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h4>👁️ Конфиденциальность</h4>
+            <div class="settings-option">
+                <label>Показывать статус "онлайн"</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="showOnlineStatusToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="settings-option">
+                <label>Читать уведомления</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="readReceiptsToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h4>📱 Интерфейс</h4>
+            <div class="settings-option">
+                <label>Компактный режим</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="compactModeToggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="settings-option">
+                <label>Размер шрифта</label>
+                <select id="fontSizeSelect">
+                    <option value="small">Маленький</option>
+                    <option value="medium" selected>Средний</option>
+                    <option value="large">Большой</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h4>💾 Данные</h4>
+            <div class="settings-option">
+                <label>Автосохранение черновиков</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="autoSaveDraftsToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <button class="btn btn-outline-danger w-100 mt-2" id="clearHistoryBtn">Очистить историю</button>
+        </div>
+        
+        <div class="settings-section">
+            <h4>ℹ️ О приложении</h4>
+            <p>Версия: 1.0.0</p>
+            <p>Сделано с ❤️ для друзей</p>
+        </div>
     </div>
 
     <!-- Модальное окно выбора аватарки -->
@@ -475,7 +744,8 @@
                         <span id="currentUserName"></span>
                         <span id="currentUserStatus" class="last-seen"></span>
                     </div>
-                    <div>
+                    <div class="d-flex gap-2">
+                        <button class="settings-btn" id="settingsBtn" title="Настройки">⚙️</button>
                         <button class="btn btn-sm btn-outline-secondary" id="themeToggle" title="Переключить тему">🌙</button>
                         <button class="btn btn-outline-danger btn-sm" id="logoutBtn">Выйти</button>
                     </div>
@@ -726,6 +996,11 @@
                 if (themeToggle) {
                     themeToggle.textContent = themeName === 'dark' ? '☀️' : '🌙';
                 }
+                
+                // Обновляем селектор в настройках
+                if (settingsThemeSelector) {
+                    settingsThemeSelector.value = themeName;
+                }
             }
 
             // НОВОЕ: Создаем CSS переменные
@@ -757,7 +1032,7 @@
                 
                 .auth-container, .chat-container, .sidebar, .messages-area, .current-chat-header,
                 .sticker-panel, .avatar-selector, .profile-modal, .password-modal, .reset-modal,
-                .confirm-modal, .edit-profile-modal, .search-results, .reply-preview {
+                .confirm-modal, .edit-profile-modal, .search-results, .reply-preview, .settings-modal {
                     background-color: var(--surface-color);
                     border-color: var(--border-color);
                     color: var(--text-color);
@@ -887,6 +1162,34 @@
                 .theme-selector select:hover {
                     background-color: var(--hover-color);
                 }
+                
+                .settings-btn {
+                    color: var(--text-color);
+                }
+                
+                .settings-btn:hover {
+                    background-color: var(--hover-color);
+                }
+                
+                .settings-close {
+                    color: var(--text-color);
+                }
+                
+                .toggle-slider {
+                    background-color: var(--border-color);
+                }
+                
+                .volume-slider {
+                    accent-color: var(--primary-color);
+                }
+                
+                #fontSizeSelect {
+                    background-color: var(--surface-color);
+                    border-color: var(--border-color);
+                    color: var(--text-color);
+                    padding: 5px;
+                    border-radius: 5px;
+                }
             `;
             document.head.appendChild(style);
 
@@ -928,7 +1231,6 @@
             const currentChatStatus = $('currentChatStatus');
             const typingIndicator = $('typingIndicator');
             const themeToggle = $('themeToggle');
-            const themeSelector = $('themeSelector');
             const profileModal = $('profileModal');
             const profileAvatarContainer = $('profileAvatarContainer');
             const profileName = $('profileName');
@@ -969,6 +1271,24 @@
             const replyPreview = $('replyPreview');
             const replyContent = $('replyContent');
             const cancelReply = $('cancelReply');
+            
+            // НОВЫЕ элементы настроек
+            const settingsBtn = $('settingsBtn');
+            const settingsModal = $('settingsModal');
+            const closeSettingsBtn = $('closeSettingsBtn');
+            const settingsThemeSelector = $('settingsThemeSelector');
+            const notificationSoundToggle = $('notificationSoundToggle');
+            const notificationVolume = $('notificationVolume');
+            const popupNotificationsToggle = $('popupNotificationsToggle');
+            const enterToSendToggle = $('enterToSendToggle');
+            const linkPreviewToggle = $('linkPreviewToggle');
+            const showTimeToggle = $('showTimeToggle');
+            const showOnlineStatusToggle = $('showOnlineStatusToggle');
+            const readReceiptsToggle = $('readReceiptsToggle');
+            const compactModeToggle = $('compactModeToggle');
+            const fontSizeSelect = $('fontSizeSelect');
+            const autoSaveDraftsToggle = $('autoSaveDraftsToggle');
+            const clearHistoryBtn = $('clearHistoryBtn');
 
             // Текущая выбранная категория стикеров
             let currentStickerCategory = Object.keys(stickerCategories)[0];
@@ -979,31 +1299,239 @@
             // Переменная для редактирования
             let editingMessage = null;
 
-            // НОВОЕ: Загружаем сохраненную тему
-            const savedTheme = localStorage.getItem('selectedTheme') || 'light';
-            applyTheme(savedTheme);
-            if (themeSelector) {
-                themeSelector.value = savedTheme;
+            // Загружаем настройки из localStorage
+            let userSettings = JSON.parse(localStorage.getItem('userSettings')) || {
+                notificationSound: true,
+                notificationVolume: 50,
+                popupNotifications: true,
+                enterToSend: true,
+                linkPreview: true,
+                showTime: true,
+                showOnlineStatus: true,
+                readReceipts: true,
+                compactMode: false,
+                fontSize: 'medium',
+                autoSaveDrafts: true
+            };
+
+            // Применяем настройки к интерфейсу
+            function applySettings() {
+                // Размер шрифта
+                const fontSizeMap = {
+                    small: '0.85rem',
+                    medium: '1rem',
+                    large: '1.2rem'
+                };
+                document.body.style.fontSize = fontSizeMap[userSettings.fontSize] || '1rem';
+                
+                // Компактный режим
+                if (userSettings.compactMode) {
+                    document.body.classList.add('compact-mode');
+                } else {
+                    document.body.classList.remove('compact-mode');
+                }
+                
+                // Enter для отправки
+                if (messageInput) {
+                    messageInput.removeEventListener('keypress', messageInput._keypressHandler);
+                    if (userSettings.enterToSend) {
+                        messageInput._keypressHandler = (e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                sendButton.click();
+                            }
+                        };
+                        messageInput.addEventListener('keypress', messageInput._keypressHandler);
+                    } else {
+                        messageInput._keypressHandler = (e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                // Обычное поведение Enter - перевод строки
+                            }
+                        };
+                    }
+                }
+                
+                // Громкость уведомлений
+                if (notificationSound) {
+                    notificationSound.volume = userSettings.notificationVolume / 100;
+                }
             }
 
-            // НОВОЕ: Обработчик смены темы через селектор
-            if (themeSelector) {
-                themeSelector.addEventListener('change', (e) => {
+            // НОВОЕ: Открытие настроек
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', () => {
+                    settingsModal.style.display = 'block';
+                    overlay.style.display = 'block';
+                    
+                    // Устанавливаем текущие значения
+                    if (settingsThemeSelector) {
+                        settingsThemeSelector.value = localStorage.getItem('selectedTheme') || 'light';
+                    }
+                    if (notificationSoundToggle) {
+                        notificationSoundToggle.checked = userSettings.notificationSound;
+                    }
+                    if (notificationVolume) {
+                        notificationVolume.value = userSettings.notificationVolume;
+                    }
+                    if (popupNotificationsToggle) {
+                        popupNotificationsToggle.checked = userSettings.popupNotifications;
+                    }
+                    if (enterToSendToggle) {
+                        enterToSendToggle.checked = userSettings.enterToSend;
+                    }
+                    if (linkPreviewToggle) {
+                        linkPreviewToggle.checked = userSettings.linkPreview;
+                    }
+                    if (showTimeToggle) {
+                        showTimeToggle.checked = userSettings.showTime;
+                    }
+                    if (showOnlineStatusToggle) {
+                        showOnlineStatusToggle.checked = userSettings.showOnlineStatus;
+                    }
+                    if (readReceiptsToggle) {
+                        readReceiptsToggle.checked = userSettings.readReceipts;
+                    }
+                    if (compactModeToggle) {
+                        compactModeToggle.checked = userSettings.compactMode;
+                    }
+                    if (fontSizeSelect) {
+                        fontSizeSelect.value = userSettings.fontSize;
+                    }
+                    if (autoSaveDraftsToggle) {
+                        autoSaveDraftsToggle.checked = userSettings.autoSaveDrafts;
+                    }
+                });
+            }
+
+            // НОВОЕ: Закрытие настроек
+            if (closeSettingsBtn) {
+                closeSettingsBtn.addEventListener('click', () => {
+                    settingsModal.style.display = 'none';
+                    overlay.style.display = 'none';
+                });
+            }
+
+            // НОВОЕ: Сохранение настроек при изменении
+            if (settingsThemeSelector) {
+                settingsThemeSelector.addEventListener('change', (e) => {
                     applyTheme(e.target.value);
                 });
             }
 
-            // Старый переключатель темы
-            if (themeToggle) {
-                themeToggle.addEventListener('click', () => {
-                    const currentTheme = localStorage.getItem('selectedTheme') || 'light';
-                    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-                    applyTheme(newTheme);
-                    if (themeSelector) {
-                        themeSelector.value = newTheme;
+            if (notificationSoundToggle) {
+                notificationSoundToggle.addEventListener('change', (e) => {
+                    userSettings.notificationSound = e.target.checked;
+                    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                });
+            }
+
+            if (notificationVolume) {
+                notificationVolume.addEventListener('input', (e) => {
+                    userSettings.notificationVolume = parseInt(e.target.value);
+                    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                    if (notificationSound) {
+                        notificationSound.volume = userSettings.notificationVolume / 100;
                     }
                 });
             }
+
+            if (popupNotificationsToggle) {
+                popupNotificationsToggle.addEventListener('change', (e) => {
+                    userSettings.popupNotifications = e.target.checked;
+                    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                });
+            }
+
+            if (enterToSendToggle) {
+                enterToSendToggle.addEventListener('change', (e) => {
+                    userSettings.enterToSend = e.target.checked;
+                    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                    applySettings();
+                });
+            }
+
+            if (linkPreviewToggle) {
+                linkPreviewToggle.addEventListener('change', (e) => {
+                    userSettings.linkPreview = e.target.checked;
+                    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                });
+            }
+
+            if (showTimeToggle) {
+                showTimeToggle.addEventListener('change', (e) => {
+                    userSettings.showTime = e.target.checked;
+                    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                    // Обновляем отображение сообщений
+                    if (currentChatId) {
+                        refreshMessages();
+                    }
+                });
+            }
+
+            if (showOnlineStatusToggle) {
+                showOnlineStatusToggle.addEventListener('change', (e) => {
+                    userSettings.showOnlineStatus = e.target.checked;
+                    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                    // Обновляем статусы в чатах
+                    refreshFullChatList();
+                });
+            }
+
+            if (readReceiptsToggle) {
+                readReceiptsToggle.addEventListener('change', (e) => {
+                    userSettings.readReceipts = e.target.checked;
+                    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                });
+            }
+
+            if (compactModeToggle) {
+                compactModeToggle.addEventListener('change', (e) => {
+                    userSettings.compactMode = e.target.checked;
+                    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                    applySettings();
+                });
+            }
+
+            if (fontSizeSelect) {
+                fontSizeSelect.addEventListener('change', (e) => {
+                    userSettings.fontSize = e.target.value;
+                    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                    applySettings();
+                });
+            }
+
+            if (autoSaveDraftsToggle) {
+                autoSaveDraftsToggle.addEventListener('change', (e) => {
+                    userSettings.autoSaveDrafts = e.target.checked;
+                    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                });
+            }
+
+            if (clearHistoryBtn) {
+                clearHistoryBtn.addEventListener('click', () => {
+                    if (confirm('Очистить всю историю сообщений? Это действие нельзя отменить.')) {
+                        // Очищаем сообщения в текущем чате
+                        if (currentChatId) {
+                            messagesRef.child(currentChatId).remove()
+                                .then(() => {
+                                    messagesArea.innerHTML = '<div class="text-muted text-center py-5">История очищена</div>';
+                                    alert('История очищена');
+                                })
+                                .catch(error => {
+                                    console.error('Ошибка при очистке истории:', error);
+                                    alert('Ошибка при очистке истории');
+                                });
+                        }
+                    }
+                });
+            }
+
+            // НОВОЕ: Загружаем сохраненную тему
+            const savedTheme = localStorage.getItem('selectedTheme') || 'light';
+            applyTheme(savedTheme);
+
+            // Применяем настройки
+            applySettings();
 
             let currentUser = null;
             let currentChatId = null;
@@ -1072,8 +1600,15 @@
                 profileName.textContent = user.name || 'Без имени';
                 profileNickname.textContent = user.nickname ? `@${user.nickname}` : '';
                 profileEmail.textContent = user.email || '';
-                const status = user.online ? 'Онлайн' : `Был(а) ${formatLastSeen(user.lastSeen)}`;
+                
+                let status = '';
+                if (userSettings.showOnlineStatus) {
+                    status = user.online ? 'Онлайн' : `Был(а) ${formatLastSeen(user.lastSeen)}`;
+                } else {
+                    status = 'Скрыт';
+                }
                 profileStatus.textContent = status;
+                
                 if (user.createdAt) {
                     const date = new Date(user.createdAt).toLocaleDateString('ru-RU');
                     profileRegistered.textContent = `Зарегистрирован(а): ${date}`;
@@ -1350,6 +1885,7 @@
                     resetModal.style.display = 'none';
                     confirmModal.style.display = 'none';
                     editProfileModal.style.display = 'none';
+                    settingsModal.style.display = 'none';
                     stickerPanel.style.display = 'none';
                     searchResultsDiv.classList.remove('show');
                     overlay.style.display = 'none';
@@ -1484,7 +2020,13 @@
                     if (currentUserAvatarContainer) {
                         renderAvatar(currentUserAvatarContainer, userData.avatar, '');
                     }
-                    if (currentUserStatus) currentUserStatus.innerHTML = '<span class="online-indicator"></span> онлайн';
+                    if (currentUserStatus) {
+                        if (userSettings.showOnlineStatus) {
+                            currentUserStatus.innerHTML = '<span class="online-indicator"></span> онлайн';
+                        } else {
+                            currentUserStatus.innerHTML = '👤';
+                        }
+                    }
 
                     await ensurePublicChatExists();
                     await addUserToPublicChat(user.uid);
@@ -1654,11 +2196,17 @@
                     avatarIcon = user ? user.avatar || 'fas fa-user' : 'fas fa-user';
                 }
                 const lastMsg = chatData.lastMessage || 'Нет сообщений';
-                const statusHtml = (chatId !== PUBLIC_CHAT_ID && otherUid && usersCache[otherUid]) ? 
-                    (usersCache[otherUid].online ? '<span class="online-indicator"></span>' : `<span class="offline-indicator"></span><span class="last-seen">${formatLastSeen(usersCache[otherUid].lastSeen)}</span>`) : '';
+                
+                let statusHtml = '';
+                if (chatId !== PUBLIC_CHAT_ID && otherUid && usersCache[otherUid] && userSettings.showOnlineStatus) {
+                    const user = usersCache[otherUid];
+                    statusHtml = user.online ? '<span class="online-indicator"></span>' : '';
+                }
+                
                 const avatarHtml = avatarIcon.startsWith('http') ? 
                     `<img src="${avatarIcon}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : 
                     `<i class="${avatarIcon}" style="width:30px;"></i>`;
+                    
                 existingItem.innerHTML = `
                     ${avatarHtml}
                     <div>
@@ -1694,11 +2242,9 @@
                     const activeClass = id === currentChatId ? 'active' : '';
 
                     let statusHtml = '';
-                    if (id !== PUBLIC_CHAT_ID && otherUid && usersCache[otherUid]) {
+                    if (id !== PUBLIC_CHAT_ID && otherUid && usersCache[otherUid] && userSettings.showOnlineStatus) {
                         const user = usersCache[otherUid];
-                        const statusClass = user.online ? 'online-indicator' : 'offline-indicator';
-                        const lastSeenText = user.online ? '' : formatLastSeen(user.lastSeen);
-                        statusHtml = `<span class="${statusClass}"></span><span class="last-seen">${lastSeenText}</span>`;
+                        statusHtml = user.online ? '<span class="online-indicator"></span>' : '';
                     }
 
                     const avatarHtml = avatarIcon.startsWith('http') ? 
@@ -1780,13 +2326,15 @@
                     const msg = snap.val();
                     displayMessage(msg);
                     if (msg.senderId !== currentUser.uid && msg.timestamp > (lastOpenedChat[chatId] - 2000)) {
-                        notificationSound.play().catch(e => console.log('Звук не воспроизвёлся', e));
-                        if (Notification.permission === 'granted') {
+                        if (userSettings.notificationSound) {
+                            notificationSound.play().catch(e => console.log('Звук не воспроизвёлся', e));
+                        }
+                        if (userSettings.popupNotifications && Notification.permission === 'granted') {
                             new Notification('Новое сообщение в чате', {
                                 body: `${msg.senderName}: ${msg.text}`,
                                 icon: '/favicon.ico'
                             });
-                        } else if (Notification.permission !== 'denied') {
+                        } else if (userSettings.popupNotifications && Notification.permission !== 'denied') {
                             Notification.requestPermission();
                         }
                     }
@@ -1810,10 +2358,14 @@
             async function updateChatHeaderStatus(uid) {
                 const user = usersCache[uid];
                 if (user && currentChatStatus) {
-                    if (user.online) {
-                        currentChatStatus.innerHTML = '<span class="online-indicator"></span> онлайн';
+                    if (userSettings.showOnlineStatus) {
+                        if (user.online) {
+                            currentChatStatus.innerHTML = '<span class="online-indicator"></span> онлайн';
+                        } else {
+                            currentChatStatus.innerHTML = `<span class="offline-indicator"></span> был(а) ${formatLastSeen(user.lastSeen)}`;
+                        }
                     } else {
-                        currentChatStatus.innerHTML = `<span class="offline-indicator"></span> был(а) ${formatLastSeen(user.lastSeen)}`;
+                        currentChatStatus.innerHTML = '';
                     }
                 }
             }
@@ -1904,7 +2456,7 @@
                 let messageHtml = `
                     <div class="message-info" onclick="showProfile('${msg.senderId}')">
                         ${avatarHtml}
-                        <span>${senderDisplay} · ${time}</span>
+                        <span>${senderDisplay} ${userSettings.showTime ? '· ' + time : ''}</span>
                         ${msg.edited ? '<span class="edited-label">(ред.)</span>' : ''}
                     </div>
                     ${replyHtml}
@@ -2094,26 +2646,29 @@
                 }
             });
 
-            if (messageInput) {
-                messageInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        sendButton.click();
-                    }
-                });
-            }
-
-            // Отслеживание печатания
-            if (messageInput) {
+            // Автосохранение черновиков
+            if (messageInput && autoSaveDraftsToggle) {
+                let draftTimeout;
                 messageInput.addEventListener('input', () => {
-                    if (!currentChatId || !currentOtherUserId) return;
-                    const typingRef = db.ref(`chats/${currentChatId}/typing/${currentUser.uid}`);
-                    typingRef.set(true);
-                    if (typingTimeout) clearTimeout(typingTimeout);
-                    typingTimeout = setTimeout(() => {
-                        typingRef.remove();
-                    }, 2000);
+                    if (!userSettings.autoSaveDrafts) return;
+                    
+                    clearTimeout(draftTimeout);
+                    draftTimeout = setTimeout(() => {
+                        localStorage.setItem(`draft_${currentChatId}`, messageInput.value);
+                    }, 1000);
                 });
+                
+                // Загружаем черновик при открытии чата
+                const originalOpenChat = openChat;
+                openChat = function(chatId, type, displayName, otherUid) {
+                    originalOpenChat(chatId, type, displayName, otherUid);
+                    if (userSettings.autoSaveDrafts) {
+                        const draft = localStorage.getItem(`draft_${chatId}`);
+                        if (draft) {
+                            messageInput.value = draft;
+                        }
+                    }
+                };
             }
 
             // Добавляем функции в глобальную область для onclick
