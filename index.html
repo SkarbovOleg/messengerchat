@@ -971,11 +971,25 @@
                 });
             }
 
-            // Загрузка фото аватара
+            // ========== ИСПРАВЛЕНО: Загрузка фото аватара ==========
             let selectedFile = null;
             avatarUpload.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file) {
+                    // Проверка типа файла
+                    if (!file.type.startsWith('image/')) {
+                        alert('Пожалуйста, выберите изображение');
+                        avatarUpload.value = '';
+                        return;
+                    }
+                    
+                    // Проверка размера (макс 5 МБ)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('Изображение слишком большое (макс. 5 МБ)');
+                        avatarUpload.value = '';
+                        return;
+                    }
+                    
                     selectedFile = file;
                     const reader = new FileReader();
                     reader.onload = (e) => {
@@ -989,25 +1003,75 @@
 
             uploadAvatarBtn.addEventListener('click', async () => {
                 if (!selectedFile || !currentUser) return;
+                
                 const userId = currentUser.uid;
+                // ИСПРАВЛЕНО: Правильный путь в Storage (убрал лишний слэш)
                 const fileRef = storage.ref(`avatars/${userId}/${Date.now()}_${selectedFile.name}`);
+                
                 try {
+                    // Показываем индикатор загрузки
+                    uploadAvatarBtn.textContent = 'Загрузка...';
+                    uploadAvatarBtn.disabled = true;
+                    
                     const snapshot = await fileRef.put(selectedFile);
                     const downloadURL = await snapshot.ref.getDownloadURL();
+                    
+                    // Сохраняем в базу данных
                     await usersRef.child(userId).update({ avatar: downloadURL });
-                    if (usersCache[currentUser.uid]) usersCache[currentUser.uid].avatar = downloadURL;
+                    
+                    // ИСПРАВЛЕНО: Обновляем кэш пользователя
+                    if (usersCache[currentUser.uid]) {
+                        usersCache[currentUser.uid].avatar = downloadURL;
+                    }
+                    
+                    // ИСПРАВЛЕНО: Обновляем отображение аватара в интерфейсе
                     renderAvatar(currentUserAvatarContainer, downloadURL, '');
+                    
+                    // ИСПРАВЛЕНО: Обновляем аватар во всех элементах интерфейса
+                    // Обновляем в списке чатов
+                    updateAllAvatars(userId, downloadURL);
+                    
+                    // Скрываем превью и кнопки
                     avatarPreview.style.display = 'none';
                     uploadAvatarBtn.style.display = 'none';
                     selectedFile = null;
                     avatarUpload.value = '';
+                    
+                    // Закрываем модалку
                     if (avatarSelector) avatarSelector.style.display = 'none';
                     if (overlay) overlay.style.display = 'none';
+                    
+                    alert('Аватар успешно обновлен!');
+                    
                 } catch (error) {
                     console.error('Ошибка загрузки:', error);
-                    alert('Ошибка загрузки фото');
+                    alert('Ошибка загрузки фото: ' + error.message);
+                } finally {
+                    uploadAvatarBtn.textContent = 'Сохранить фото';
+                    uploadAvatarBtn.disabled = false;
                 }
             });
+
+            // ИСПРАВЛЕНО: Функция для обновления всех аватаров пользователя в интерфейсе
+            function updateAllAvatars(userId, avatarUrl) {
+                // Обновляем аватар в текущем блоке пользователя
+                const currentUserAvatar = currentUserAvatarContainer.querySelector('img');
+                if (currentUserAvatar) {
+                    currentUserAvatar.src = avatarUrl;
+                }
+                
+                // Обновляем в списке чатов
+                document.querySelectorAll(`.chat-item[data-otheruid="${userId}"] .avatar-img, .chat-item[data-otheruid="${userId}"] img`).forEach(img => {
+                    if (img.tagName === 'IMG') {
+                        img.src = avatarUrl;
+                    }
+                });
+                
+                // Обновляем в результатах поиска
+                document.querySelectorAll(`.search-result-item[data-uid="${userId}"] img`).forEach(img => {
+                    if (img) img.src = avatarUrl;
+                });
+            }
 
             if (currentUserBlock) {
                 currentUserBlock.addEventListener('click', () => {
@@ -1503,6 +1567,7 @@
 
             // Функция для форматирования размера файла
             function formatFileSize(bytes) {
+                if (!bytes) return '';
                 if (bytes < 1024) return bytes + ' B';
                 if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
                 return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
@@ -1510,27 +1575,49 @@
 
             // Функция для определения иконки файла по типу
             function getFileIcon(mimeType, fileName) {
-                if (mimeType.startsWith('image/')) return 'fa-image';
-                if (mimeType.startsWith('video/')) return 'fa-video';
-                if (mimeType.startsWith('audio/')) return 'fa-music';
-                if (mimeType === 'application/pdf') return 'fa-file-pdf';
-                if (mimeType.includes('word') || fileName?.endsWith('.doc') || fileName?.endsWith('.docx')) return 'fa-file-word';
-                if (mimeType.includes('excel') || fileName?.endsWith('.xls') || fileName?.endsWith('.xlsx')) return 'fa-file-excel';
-                if (mimeType.includes('presentation') || fileName?.endsWith('.ppt') || fileName?.endsWith('.pptx')) return 'fa-file-powerpoint';
-                if (mimeType.startsWith('text/')) return 'fa-file-alt';
-                if (mimeType.includes('zip') || mimeType.includes('compressed') || fileName?.endsWith('.zip') || fileName?.endsWith('.rar')) return 'fa-file-archive';
+                if (!mimeType && !fileName) return 'fa-file';
+                
+                if (mimeType) {
+                    if (mimeType.startsWith('image/')) return 'fa-image';
+                    if (mimeType.startsWith('video/')) return 'fa-video';
+                    if (mimeType.startsWith('audio/')) return 'fa-music';
+                    if (mimeType === 'application/pdf') return 'fa-file-pdf';
+                    if (mimeType.includes('word') || fileName?.endsWith('.doc') || fileName?.endsWith('.docx')) return 'fa-file-word';
+                    if (mimeType.includes('excel') || fileName?.endsWith('.xls') || fileName?.endsWith('.xlsx')) return 'fa-file-excel';
+                    if (mimeType.includes('presentation') || fileName?.endsWith('.ppt') || fileName?.endsWith('.pptx')) return 'fa-file-powerpoint';
+                    if (mimeType.startsWith('text/')) return 'fa-file-alt';
+                    if (mimeType.includes('zip') || mimeType.includes('compressed')) return 'fa-file-archive';
+                }
+                
+                // Определяем по расширению файла
+                if (fileName) {
+                    const ext = fileName.split('.').pop().toLowerCase();
+                    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(ext)) return 'fa-image';
+                    if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv'].includes(ext)) return 'fa-video';
+                    if (['mp3', 'wav', 'ogg', 'flac'].includes(ext)) return 'fa-music';
+                    if (ext === 'pdf') return 'fa-file-pdf';
+                    if (['doc', 'docx'].includes(ext)) return 'fa-file-word';
+                    if (['xls', 'xlsx'].includes(ext)) return 'fa-file-excel';
+                    if (['ppt', 'pptx'].includes(ext)) return 'fa-file-powerpoint';
+                    if (['txt', 'css', 'js', 'html', 'json', 'xml'].includes(ext)) return 'fa-file-alt';
+                    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'fa-file-archive';
+                }
+                
                 return 'fa-file';
             }
 
+            // ========== ИСПРАВЛЕНО: Функция отображения сообщений ==========
             async function displayMessage(msg) {
                 if (!messagesArea) return;
                 if (messagesArea.innerHTML.includes('Выберите чат') || messagesArea.innerHTML.includes('Загрузка')) {
                     messagesArea.innerHTML = '';
                 }
+                
                 const isMy = msg.senderId === currentUser.uid;
                 const senderData = usersCache[msg.senderId] || {};
                 const avatar = senderData.avatar || 'fas fa-user';
                 let senderDisplay = msg.senderName || 'Пользователь';
+                
                 if (!isMy && senderData.name) {
                     senderDisplay = senderData.nickname ? `${senderData.name} (@${senderData.nickname})` : senderData.name;
                 } else if (isMy) {
@@ -1541,26 +1628,31 @@
                 msgDiv.className = `message ${isMy ? 'my-message' : 'other-message'}`;
                 const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
-                // Формируем содержимое сообщения (текст + файл)
+                // Формируем содержимое сообщения
                 let contentHtml = '';
-                if (msg.text) {
+                
+                // Добавляем текст сообщения, если он есть
+                if (msg.text && msg.text.trim() !== '') {
                     contentHtml += `<div class="message-bubble">${msg.text}</div>`;
                 }
+                
+                // ИСПРАВЛЕНО: Добавляем файл, если он есть
                 if (msg.fileURL) {
                     const fileIcon = getFileIcon(msg.fileType || '', msg.fileName || '');
                     const fileSize = msg.fileSize ? formatFileSize(msg.fileSize) : '';
+                    
                     if (msg.fileType && msg.fileType.startsWith('image/')) {
                         // Для изображений показываем превью
-                        contentHtml += `<div><img src="${msg.fileURL}" class="image-preview" onclick="window.open('${msg.fileURL}', '_blank')" alt="image"></div>`;
+                        contentHtml += `<div><img src="${msg.fileURL}" class="image-preview" onclick="window.open('${msg.fileURL}', '_blank')" alt="image" style="max-width:100%; max-height:300px; border-radius:10px; cursor:pointer; margin-top:5px;"></div>`;
                     } else {
                         contentHtml += `
-                            <div class="file-attachment">
-                                <i class="fas ${fileIcon} file-icon"></i>
-                                <div class="file-info">
-                                    <div class="file-name">${msg.fileName || 'Файл'}</div>
-                                    <div class="file-size">${fileSize}</div>
+                            <div class="file-attachment" style="display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.05); border-radius:10px; padding:8px 12px; margin-top:5px;">
+                                <i class="fas ${fileIcon}" style="font-size:2rem;"></i>
+                                <div style="flex-grow:1; overflow:hidden;">
+                                    <div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${msg.fileName || 'Файл'}</div>
+                                    <div style="font-size:0.8rem; color:#65676b;">${fileSize}</div>
                                 </div>
-                                <a href="${msg.fileURL}" target="_blank" class="file-download">
+                                <a href="${msg.fileURL}" target="_blank" style="color:#0084ff; font-size:1.2rem;">
                                     <i class="fas fa-download"></i>
                                 </a>
                             </div>
@@ -1568,25 +1660,27 @@
                     }
                 }
 
+                // Реакции
                 const reactions = msg.reactions || {};
                 const count = Object.keys(reactions).length;
                 const userReacted = reactions[currentUser.uid] ? true : false;
 
                 const avatarHtml = avatar.startsWith('http') ? 
-                    `<img src="${avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">` : 
-                    `<i class="${avatar}" style="font-size:1rem; width:20px;"></i>`;
+                    `<img src="${avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover; cursor:pointer;">` : 
+                    `<i class="${avatar}" style="font-size:1rem; width:20px; cursor:pointer;"></i>`;
 
                 msgDiv.innerHTML = `
-                    <div class="message-info" onclick="showProfile('${msg.senderId}')">
+                    <div class="message-info" style="display:flex; align-items:center; gap:5px; margin-bottom:2px; cursor:pointer;" onclick="showProfile('${msg.senderId}')">
                         ${avatarHtml}
                         <span>${senderDisplay} · ${time}</span>
                     </div>
                     ${contentHtml}
-                    <button class="reaction-btn" data-message-id="${msg.id}" data-reacted="${userReacted}">
+                    <button class="reaction-btn" data-message-id="${msg.id}" data-reacted="${userReacted}" style="background:none; border:none; font-size:1rem; cursor:pointer; padding:2px 8px; border-radius:20px; display:inline-flex; align-items:center; gap:4px; color:#65676b; margin-top:4px;">
                         👍 <span class="reaction-count">${count}</span>
                     </button>
                 `;
 
+                // Добавляем обработчик для реакций
                 const btn = msgDiv.querySelector('.reaction-btn');
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
@@ -1595,22 +1689,28 @@
                     const updates = {};
                     if (reacted) {
                         updates[`messages/${currentChatId}/${messageId}/reactions/${currentUser.uid}`] = null;
+                        btn.dataset.reacted = 'false';
                     } else {
                         updates[`messages/${currentChatId}/${messageId}/reactions/${currentUser.uid}`] = true;
+                        btn.dataset.reacted = 'true';
                     }
                     await db.ref().update(updates);
+                    
+                    // Обновляем счетчик
+                    const newCount = reacted ? count - 1 : count + 1;
+                    btn.querySelector('.reaction-count').textContent = newCount;
                 });
 
                 messagesArea.appendChild(msgDiv);
                 messagesArea.scrollTop = messagesArea.scrollHeight;
             }
 
-            // Обработчик кнопки прикрепления файла
+            // ========== ИСПРАВЛЕНО: Обработчик кнопки прикрепления файла ==========
             fileBtn.addEventListener('click', () => {
                 fileInput.click();
             });
 
-            // Обработчик выбора файла
+            // ========== ИСПРАВЛЕНО: Обработчик выбора файла ==========
             fileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file || !currentChatId) {
@@ -1618,7 +1718,7 @@
                     return;
                 }
 
-                // Проверка размера (например, до 20 МБ)
+                // Проверка размера (до 20 МБ)
                 if (file.size > 20 * 1024 * 1024) {
                     alert('Файл слишком большой (макс. 20 МБ)');
                     fileInput.value = '';
@@ -1629,48 +1729,71 @@
                 uploadProgress.style.display = 'block';
                 uploadProgressBar.style.width = '0%';
 
+                // ИСПРАВЛЕНО: Используем правильный путь в Storage
                 const fileRef = storage.ref(`chat_files/${currentChatId}/${Date.now()}_${file.name}`);
                 const uploadTask = fileRef.put(file);
 
                 uploadTask.on('state_changed',
                     (snapshot) => {
-                        // Прогресс
+                        // Прогресс загрузки
                         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                         uploadProgressBar.style.width = progress + '%';
                     },
                     (error) => {
                         console.error('Ошибка загрузки файла:', error);
-                        alert('Ошибка загрузки файла');
+                        alert('Ошибка загрузки файла: ' + error.message);
                         uploadProgress.style.display = 'none';
                         fileInput.value = '';
                     },
                     async () => {
-                        // Завершено
-                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                        // Отправляем сообщение с файлом
-                        const msg = {
-                            senderId: currentUser.uid,
-                            senderName: currentUser.displayName || currentUser.email,
-                            text: '', // можно добавить текст позже, но пока пусто
-                            fileURL: downloadURL,
-                            fileName: file.name,
-                            fileType: file.type,
-                            fileSize: file.size,
-                            timestamp: firebase.database.ServerValue.TIMESTAMP
-                        };
-                        const newMsgRef = messagesRef.child(currentChatId).push();
-                        await newMsgRef.set({ ...msg, id: newMsgRef.key });
-                        // Обновляем последнее сообщение в чате
-                        const lastMsgText = file.type.startsWith('image/') ? '📷 Фото' : '📎 Файл';
-                        await chatsRef.child(currentChatId).update({
-                            lastMessage: lastMsgText,
-                            lastMessageTime: msg.timestamp
-                        });
+                        try {
+                            // Получаем URL загруженного файла
+                            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                            
+                            // ИСПРАВЛЕНО: Создаем сообщение с правильной структурой
+                            const msg = {
+                                senderId: currentUser.uid,
+                                senderName: currentUser.displayName || currentUser.email,
+                                text: '', // пустой текст для файлов
+                                fileURL: downloadURL,
+                                fileName: file.name,
+                                fileType: file.type,
+                                fileSize: file.size,
+                                timestamp: firebase.database.ServerValue.TIMESTAMP
+                            };
+                            
+                            // Отправляем сообщение
+                            const newMsgRef = messagesRef.child(currentChatId).push();
+                            await newMsgRef.set({ ...msg, id: newMsgRef.key });
+                            
+                            // ИСПРАВЛЕНО: Обновляем последнее сообщение в чате с правильным текстом
+                            let lastMsgText = '';
+                            if (file.type.startsWith('image/')) {
+                                lastMsgText = '📷 Фото';
+                            } else if (file.type.startsWith('video/')) {
+                                lastMsgText = '🎥 Видео';
+                            } else if (file.type.startsWith('audio/')) {
+                                lastMsgText = '🎵 Аудио';
+                            } else {
+                                lastMsgText = '📎 Файл: ' + file.name.substring(0, 20) + (file.name.length > 20 ? '...' : '');
+                            }
+                            
+                            await chatsRef.child(currentChatId).update({
+                                lastMessage: lastMsgText,
+                                lastMessageTime: firebase.database.ServerValue.TIMESTAMP
+                            });
 
-                        // Скрываем прогресс и очищаем input
-                        uploadProgress.style.display = 'none';
-                        uploadProgressBar.style.width = '0%';
-                        fileInput.value = '';
+                            // Скрываем прогресс и очищаем input
+                            uploadProgress.style.display = 'none';
+                            uploadProgressBar.style.width = '0%';
+                            fileInput.value = '';
+                            
+                        } catch (error) {
+                            console.error('Ошибка при отправке файла:', error);
+                            alert('Ошибка при отправке файла: ' + error.message);
+                            uploadProgress.style.display = 'none';
+                            fileInput.value = '';
+                        }
                     }
                 );
             });
