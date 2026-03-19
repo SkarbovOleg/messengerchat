@@ -2839,6 +2839,38 @@
 
             window.showProfile = showProfile;
             window.scrollToMessage = scrollToMessage;
+
+            // ========== ДОБАВЛЕННЫЙ КОД ==========
+            // Жесты для мобильных устройств (swipe)
+            let touchStartX = 0;
+            let touchEndX = 0;
+            const SWIPE_THRESHOLD = 70; // минимальное расстояние для срабатывания свайпа
+
+            function handleTouchStart(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            }
+
+            function handleTouchEnd(e) {
+                // Если ширина экрана больше 768px — не обрабатываем свайпы (для ПК)
+                if (window.innerWidth > 768) return;
+                
+                touchEndX = e.changedTouches[0].screenX;
+                const diff = touchEndX - touchStartX;
+                
+                // Свайп вправо (открыть список чатов)
+                if (diff > SWIPE_THRESHOLD && chatContainer.classList.contains('mobile-chat-open')) {
+                    chatContainer.classList.remove('mobile-chat-open');
+                }
+                // Свайп влево (открыть чат, если он не открыт)
+                else if (diff < -SWIPE_THRESHOLD && !chatContainer.classList.contains('mobile-chat-open') && currentChatId) {
+                    chatContainer.classList.add('mobile-chat-open');
+                }
+            }
+
+            // Добавляем обработчики только для сенсорных событий
+            document.addEventListener('touchstart', handleTouchStart, { passive: true });
+            document.addEventListener('touchend', handleTouchEnd);
+            // ======================================
             
             // Применяем настройки при загрузке
             applyUserSettings();
